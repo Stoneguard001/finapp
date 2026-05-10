@@ -1,0 +1,159 @@
+import { useState, useCallback, useMemo } from 'react'
+import { Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Search } from 'lucide-react'
+import { getRules, deleteRule, getCategories } from '@/db/queries/categories'
+import { getTags } from '@/db/queries/tags'
+import { useQuery } from '@/hooks/useQuery'
+import RuleModal from '@/components/RuleModal'
+
+const TYPE_LABEL = { contains: 'contains', starts_with: 'starts with', regex: 'regex' }
+
+function SortIcon({ col, sort }) {
+  if (sort.col !== col) return <ChevronsUpDown size={12} className="text-slate-600" />
+  return sort.dir === 'asc'
+    ? <ChevronUp size={12} className="text-brand-400" />
+    : <ChevronDown size={12} className="text-brand-400" />
+}
+
+export default function Rules() {
+  const [showModal, setShowModal] = useState(false)
+  const [refresh, setRefresh]     = useState(0)
+  const [search, setSearch]       = useState('')
+  const [sort, setSort]           = useState({ col: 'priority', dir: 'desc' })
+  const bump = useCallback(() => setRefresh(r => r + 1), [])
+
+  const { data: rules      = [] } = useQuery(() => getRules(),      [refresh])
+  const { data: categories = [] } = useQuery(() => getCategories())
+  const { data: tags       = [] } = useQuery(() => getTags(),       [refresh])
+
+  function handleDelete(id) {
+    if (!confirm('Delete this rule?')) return
+    deleteRule(id)
+    bump()
+  }
+
+  function toggleSort(col) {
+    setSort(s => s.col === col
+      ? { col, dir: s.dir === 'asc' ? 'desc' : 'asc' }
+      : { col, dir: 'asc' }
+    )
+  }
+
+  const processed = useMemo(() => {
+    const q = search.toLowerCase()
+    const filtered = q
+      ? rules.filter(r =>
+          r.pattern.toLowerCase().includes(q) ||
+          TYPE_LABEL[r.pattern_type].includes(q) ||
+          r.category_name.toLowerCase().includes(q) ||
+          String(r.priority).includes(q) ||
+          r.tags.some(t => t.name.toLowerCase().includes(q))
+        )
+      : rules
+
+    return [...filtered].sort((a, b) => {
+      let av, bv
+      if (sort.col === 'priority') { av = a.priority;          bv = b.priority }
+      if (sort.col === 'pattern')  { av = a.pattern;           bv = b.pattern }
+      if (sort.col === 'type')     { av = a.pattern_type;      bv = b.pattern_type }
+      if (sort.col === 'category') { av = a.category_name;     bv = b.category_name }
+      if (sort.col === 'tags')     { av = a.tags[0]?.name ?? ''; bv = b.tags[0]?.name ?? '' }
+      if (av < bv) return sort.dir === 'asc' ? -1 : 1
+      if (av > bv) return sort.dir === 'asc' ?  1 : -1
+      return 0
+    })
+  }, [rules, search, sort])
+
+  function Th({ col, children }) {
+    return (
+      <th
+        className="px-4 py-3 text-xs font-medium text-slate-500 text-left cursor-pointer select-none hover:text-slate-300 transition-colors"
+        onClick={() => toggleSort(col)}
+      >
+        <span className="flex items-center gap-1">
+          {children}
+          <SortIcon col={col} sort={sort} />
+        </span>
+      </th>
+    )
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl font-semibold text-slate-100">Category Rules</h1>
+          <p className="text-sm text-slate-500 mt-0.5">Auto-assign categories and tags when importing transactions</p>
+        </div>
+        <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Rule</button>
+      </div>
+
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <input
+          className="input pl-9"
+          placeholder="Search rules…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="card p-0 overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-slate-800">
+              <Th col="type">Match</Th>
+              <Th col="pattern">Pattern</Th>
+              <Th col="category">Category</Th>
+              <Th col="tags">Tags</Th>
+              <Th col="priority">Priority</Th>
+              <th className="px-4 py-3 w-12"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {processed.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-slate-600">
+                  {search ? 'No rules match your search' : 'No rules yet — add one, or use "Save as rule" when importing'}
+                </td>
+              </tr>
+            )}
+            {processed.map(r => (
+              <tr key={r.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
+                <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{TYPE_LABEL[r.pattern_type]}</td>
+                <td className="px-4 py-3 font-mono text-slate-200">{r.pattern}</td>
+                <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{r.category_name}</td>
+                <td className="px-4 py-3">
+                  <div className="flex flex-wrap gap-1">
+                    {r.tags.map(t => (
+                      <span key={t.id}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                        style={{ background: t.color }}>
+                        {t.name}
+                      </span>
+                    ))}
+                  </div>
+                </td>
+                <td className="px-4 py-3 text-slate-500">{r.priority}</td>
+                <td className="px-4 py-3">
+                  <button onClick={() => handleDelete(r.id)}
+                    className="btn-ghost p-1 text-red-500 hover:text-red-400">
+                    <Trash2 size={13} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {showModal && (
+        <RuleModal
+          categories={categories}
+          tags={tags}
+          onSave={() => { setShowModal(false); bump() }}
+          onClose={() => setShowModal(false)}
+        />
+      )}
+    </div>
+  )
+}

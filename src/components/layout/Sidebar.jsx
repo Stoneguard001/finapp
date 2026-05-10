@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, PiggyBank,
-  Upload, Tag, ChevronRight
+  Upload, Tag, ListFilter, ChevronRight
 } from 'lucide-react'
 
 const NAV = [
@@ -11,6 +11,7 @@ const NAV = [
   { to: '/accounts',     icon: Wallet,          label: 'Accounts' },
   { to: '/import',       icon: Upload,          label: 'Import' },
   { to: '/categories',   icon: Tag,             label: 'Categories' },
+  { to: '/rules',        icon: ListFilter,      label: 'Rules' },
 ]
 
 export default function Sidebar() {

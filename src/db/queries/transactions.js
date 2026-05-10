@@ -1,10 +1,22 @@
 import { query, run, runMany } from '../database'
 
-export const getTransactions = ({ accountId, categoryId, startDate, endDate, limit = 500, offset = 0 } = {}) => {
+// char(31) = unit separator, char(30) = record separator — safe delimiters for tag encoding
+const parseTags = row => ({
+  ...row,
+  tags: row.tags_raw
+    ? row.tags_raw.split('\x1E').map(s => {
+        const [id, name, color] = s.split('\x1F')
+        return { id: Number(id), name, color }
+      })
+    : []
+})
+
+export const getTransactions = ({ accountId, categoryId, tagId, startDate, endDate, limit = 500, offset = 0 } = {}) => {
   const conditions = []
   const params = []
   if (accountId)  { conditions.push('t.account_id=?');  params.push(accountId) }
   if (categoryId) { conditions.push('t.category_id=?'); params.push(categoryId) }
+  if (tagId)      { conditions.push('EXISTS (SELECT 1 FROM transaction_tags WHERE transaction_id=t.id AND tag_id=?)'); params.push(tagId) }
   if (startDate)  { conditions.push('t.date>=?');        params.push(startDate) }
   if (endDate)    { conditions.push('t.date<=?');        params.push(endDate) }
 
@@ -17,22 +29,34 @@ export const getTransactions = ({ accountId, categoryId, startDate, endDate, lim
            a.color as account_color,
            c.name  as category_name,
            c.icon  as category_icon,
-           c.color as category_color
+           c.color as category_color,
+           GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw
     FROM transactions t
-    LEFT JOIN accounts   a ON a.id = t.account_id
-    LEFT JOIN categories c ON c.id = t.category_id
+    LEFT JOIN accounts        a  ON a.id  = t.account_id
+    LEFT JOIN categories      c  ON c.id  = t.category_id
+    LEFT JOIN transaction_tags tt ON tt.transaction_id = t.id
+    LEFT JOIN tags            tg ON tg.id = tt.tag_id
     ${where}
+    GROUP BY t.id
     ORDER BY t.date DESC, t.id DESC
     LIMIT ? OFFSET ?
-  `, params)
+  `, params).map(parseTags)
 }
 
-export const getTransaction = (id) =>
-  query(`SELECT t.*, a.name as account_name, c.name as category_name
-         FROM transactions t
-         LEFT JOIN accounts a ON a.id=t.account_id
-         LEFT JOIN categories c ON c.id=t.category_id
-         WHERE t.id=?`, [id])[0] ?? null
+export const getTransaction = (id) => {
+  const row = query(`
+    SELECT t.*, a.name as account_name, c.name as category_name,
+           GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw
+    FROM transactions t
+    LEFT JOIN accounts        a  ON a.id  = t.account_id
+    LEFT JOIN categories      c  ON c.id  = t.category_id
+    LEFT JOIN transaction_tags tt ON tt.transaction_id = t.id
+    LEFT JOIN tags            tg ON tg.id = tt.tag_id
+    WHERE t.id=?
+    GROUP BY t.id
+  `, [id])[0]
+  return row ? parseTags(row) : null
+}
 
 export const createTransaction = (tx) =>
   run(`INSERT INTO transactions
@@ -88,7 +112,6 @@ export const getMonthlyTotals = (months = 12) =>
     ORDER BY month
   `)
 
-// Duplicate detection: same account, date, amount, description
 export const findDuplicates = (accountId, date, amount, description) =>
   query(`SELECT id FROM transactions
          WHERE account_id=? AND date=? AND amount=? AND description=?

@@ -8,6 +8,7 @@ import Budgets from '@/pages/Budgets'
 import Accounts from '@/pages/Accounts'
 import ImportPage from '@/pages/ImportPage'
 import Categories from '@/pages/Categories'
+import Rules from '@/pages/Rules'
 
 export default function App() {
   const ready = useDbStore(s => s.ready)
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/accounts"     element={<Accounts />} />
         <Route path="/import"       element={<ImportPage />} />
         <Route path="/categories"   element={<Categories />} />
+        <Route path="/rules"        element={<Rules />} />
       </Routes>
     </Layout>
   )

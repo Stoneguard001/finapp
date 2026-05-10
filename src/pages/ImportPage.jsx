@@ -1,32 +1,37 @@
 import { useState, useCallback } from 'react'
-import { Upload, CheckCircle, AlertCircle, X } from 'lucide-react'
+import { Upload, CheckCircle, AlertCircle, X, BookmarkPlus } from 'lucide-react'
 import { parseCSV } from '@/parsers/csv'
 import { parseExcel } from '@/parsers/excel'
 import { parsePDF } from '@/parsers/pdf'
 import PdfMapper from '@/components/PdfMapper'
 import { getAccounts } from '@/db/queries/accounts'
 import { getCategories, getRules, applyRules } from '@/db/queries/categories'
-import { findDuplicates, createTransactions } from '@/db/queries/transactions'
+import { findDuplicates, createTransaction } from '@/db/queries/transactions'
+import { setTransactionTags } from '@/db/queries/tags'
 import { run } from '@/db/database'
 import { useQuery } from '@/hooks/useQuery'
 import { fmt, fmtDate } from '@/lib/fmt'
 import CategoryBadge from '@/components/CategoryBadge'
+import RuleModal from '@/components/RuleModal'
+import { getTags } from '@/db/queries/tags'
 
 const STEPS = ['upload', 'preview', 'done']
 
 export default function ImportPage() {
-  const [step, setStep]           = useState('upload')
-  const [accountId, setAccountId] = useState('')
-  const [rows, setRows]           = useState([])
-  const [profile, setProfile]     = useState('')
-  const [result, setResult]       = useState(null)
-  const [loading, setLoading]     = useState(false)
-  const [error, setError]         = useState(null)
-  const [pdfData, setPdfData]     = useState(null)
+  const [step, setStep]               = useState('upload')
+  const [accountId, setAccountId]     = useState('')
+  const [rows, setRows]               = useState([])
+  const [profile, setProfile]         = useState('')
+  const [result, setResult]           = useState(null)
+  const [loading, setLoading]         = useState(false)
+  const [error, setError]             = useState(null)
+  const [pdfData, setPdfData]         = useState(null)
+  const [savingRuleFor, setSavingRuleFor] = useState(null) // { idx, pattern, categoryId }
 
   const { data: accounts = [] }   = useQuery(() => getAccounts())
   const { data: categories = [] } = useQuery(() => getCategories())
   const { data: rules = [] }      = useQuery(() => getRules())
+  const { data: tags = [] }       = useQuery(() => getTags())
 
   const onDrop = useCallback(async (e) => {
     e.preventDefault()
@@ -53,10 +58,10 @@ export default function ImportPage() {
         throw new Error(`Unsupported file type: .${ext}`)
       }
       // Auto-apply category rules
-      const enriched = parsed.rows.map(r => ({
-        ...r,
-        category_id: applyRules(r.description ?? '', rules)
-      }))
+      const enriched = parsed.rows.map(r => {
+        const match = applyRules(r.description ?? '', rules)
+        return { ...r, category_id: match?.category_id ?? null, tag_ids: match?.tag_ids ?? [] }
+      })
       setRows(enriched)
       setProfile(parsed.profile)
       setStep('preview')
@@ -71,6 +76,16 @@ export default function ImportPage() {
     setRows(prev => prev.map((r, i) => i === idx ? { ...r, category_id } : r))
   }
 
+  function handleRuleSaved(newRule) {
+    setSavingRuleFor(null)
+    // Apply the new rule immediately to any currently uncategorized rows
+    setRows(prev => prev.map(r => {
+      if (r.category_id) return r
+      const match = applyRules(r.description, [newRule, ...rules])
+      return match ? { ...r, category_id: match.category_id, tag_ids: match.tag_ids } : r
+    }))
+  }
+
   async function handleImport() {
     if (!accountId) return alert('Select an account first')
     setLoading(true)
@@ -83,16 +98,15 @@ export default function ImportPage() {
     )
 
     let imported = 0, skipped = 0
-    const toInsert = []
 
     for (const row of rows) {
       const dups = findDuplicates(accountId, row.date, row.amount, row.description)
       if (dups.length > 0) { skipped++; continue }
-      toInsert.push({ ...row, account_id: accountId, import_session_id: sessionId })
+      const txId = createTransaction({ ...row, account_id: Number(accountId), import_session_id: sessionId })
+      if (row.tag_ids?.length) setTransactionTags(txId, row.tag_ids)
       imported++
     }
 
-    createTransactions(toInsert)
     run(`UPDATE import_sessions SET rows_imported=?, rows_skipped=? WHERE id=?`,
       [imported, skipped, sessionId])
 
@@ -102,7 +116,10 @@ export default function ImportPage() {
   }
 
   function handleMapped(mappedRows) {
-    const enriched = mappedRows.map(r => ({ ...r, category_id: applyRules(r.description ?? '', rules) }))
+    const enriched = mappedRows.map(r => {
+      const match = applyRules(r.description ?? '', rules)
+      return { ...r, category_id: match?.category_id ?? null, tag_ids: match?.tag_ids ?? [] }
+    })
     setRows(enriched)
     setProfile('pdf_mapped')
     setStep('preview')
@@ -207,17 +224,26 @@ export default function ImportPage() {
                       <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">{fmtDate(row.date)}</td>
                       <td className="px-4 py-2.5 text-slate-200 max-w-xs truncate">{row.description}</td>
                       <td className="px-4 py-2.5">
-                        <select
-                          className="bg-transparent text-xs text-slate-300 border border-slate-700 rounded px-2 py-1
-                                     focus:outline-none focus:border-brand-500"
-                          value={row.category_id ?? ''}
-                          onChange={e => updateRowCategory(i, e.target.value ? Number(e.target.value) : null)}
-                        >
-                          <option value="">Uncategorized</option>
-                          {categories.map(c => (
-                            <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-                          ))}
-                        </select>
+                        <div className="flex items-center gap-1">
+                          <select
+                            className="bg-transparent text-xs text-slate-300 border border-slate-700 rounded px-2 py-1
+                                       focus:outline-none focus:border-brand-500"
+                            value={row.category_id ?? ''}
+                            onChange={e => updateRowCategory(i, e.target.value ? Number(e.target.value) : null)}
+                          >
+                            <option value="">Uncategorized</option>
+                            {categories.map(c => (
+                              <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
+                            ))}
+                          </select>
+                          <button
+                            title="Save as rule"
+                            className="btn-ghost p-1 text-slate-600 hover:text-brand-400 flex-shrink-0"
+                            onClick={() => setSavingRuleFor({ idx: i, pattern: row.description, categoryId: row.category_id })}
+                          >
+                            <BookmarkPlus size={13} />
+                          </button>
+                        </div>
                       </td>
                       <td className={`px-4 py-2.5 text-right font-mono ${row.amount >= 0 ? 'text-brand-400' : 'text-slate-300'}`}>
                         {row.amount >= 0 ? '+' : ''}{fmt(row.amount)}
@@ -243,6 +269,17 @@ export default function ImportPage() {
           </div>
           <button className="btn-primary" onClick={reset}>Import More</button>
         </div>
+      )}
+
+      {savingRuleFor !== null && (
+        <RuleModal
+          categories={categories}
+          tags={tags}
+          initialPattern={savingRuleFor.pattern}
+          initialCategoryId={savingRuleFor.categoryId}
+          onSave={handleRuleSaved}
+          onClose={() => setSavingRuleFor(null)}
+        />
       )}
     </div>
   )

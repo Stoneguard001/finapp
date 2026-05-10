@@ -53,6 +53,25 @@ CREATE INDEX IF NOT EXISTS idx_transactions_date        ON transactions(date);
 CREATE INDEX IF NOT EXISTS idx_transactions_account     ON transactions(account_id);
 CREATE INDEX IF NOT EXISTS idx_transactions_category    ON transactions(category_id);
 
+-- ── Tags ──────────────────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS tags (
+  id    INTEGER PRIMARY KEY AUTOINCREMENT,
+  name  TEXT    NOT NULL UNIQUE,
+  color TEXT    NOT NULL DEFAULT '#64748b'
+);
+
+CREATE TABLE IF NOT EXISTS transaction_tags (
+  transaction_id INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+  tag_id         INTEGER NOT NULL REFERENCES tags(id)         ON DELETE CASCADE,
+  PRIMARY KEY (transaction_id, tag_id)
+);
+
+CREATE TABLE IF NOT EXISTS rule_tags (
+  rule_id INTEGER NOT NULL REFERENCES category_rules(id) ON DELETE CASCADE,
+  tag_id  INTEGER NOT NULL REFERENCES tags(id)           ON DELETE CASCADE,
+  PRIMARY KEY (rule_id, tag_id)
+);
+
 -- ── Budgets ───────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS budgets (
   id            INTEGER PRIMARY KEY AUTOINCREMENT,

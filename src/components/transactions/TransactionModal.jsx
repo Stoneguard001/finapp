@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import Modal from '@/components/Modal'
 import { createTransaction, updateTransaction } from '@/db/queries/transactions'
+import { setTransactionTags } from '@/db/queries/tags'
+import TagPicker from '@/components/TagPicker'
 
-export default function TransactionModal({ transaction, categories, accounts, onClose, onSave }) {
+export default function TransactionModal({ transaction, categories, accounts, tags, onClose, onSave }) {
   const isNew = !transaction.id
   const [form, setForm] = useState({
     account_id:  transaction.account_id ?? '',
@@ -12,6 +14,9 @@ export default function TransactionModal({ transaction, categories, accounts, on
     category_id: transaction.category_id ?? '',
     notes:       transaction.notes ?? ''
   })
+  const [selectedTagIds, setSelectedTagIds] = useState(
+    transaction.tags?.map(t => t.id) ?? []
+  )
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -23,8 +28,9 @@ export default function TransactionModal({ transaction, categories, accounts, on
       account_id:  Number(form.account_id),
       category_id: form.category_id ? Number(form.category_id) : null
     }
-    if (isNew) createTransaction(data)
-    else       updateTransaction(transaction.id, data)
+    const id = isNew ? createTransaction(data) : transaction.id
+    if (!isNew) updateTransaction(id, data)
+    setTransactionTags(id, selectedTagIds)
     onSave()
   }
 
@@ -58,6 +64,10 @@ export default function TransactionModal({ transaction, categories, accounts, on
           <option value="">Uncategorized</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
         </select>
+      </div>
+      <div>
+        <label className="label">Tags</label>
+        <TagPicker tags={tags} selected={selectedTagIds} onChange={setSelectedTagIds} />
       </div>
       <div>
         <label className="label">Notes</label>

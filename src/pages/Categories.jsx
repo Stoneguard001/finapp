@@ -2,11 +2,13 @@ import { useState, useCallback } from 'react'
 import { Plus, Trash2, Pencil } from 'lucide-react'
 import { getCategories, getRules, createRule, deleteRule } from '@/db/queries/categories'
 import { useQuery } from '@/hooks/useQuery'
+import CategoryModal from '@/components/CategoryModal'
 
 export default function Categories() {
-  const [refresh, setRefresh]     = useState(0)
-  const [newPattern, setPattern]  = useState('')
-  const [newCatId, setCatId]      = useState('')
+  const [refresh, setRefresh]   = useState(0)
+  const [newPattern, setPattern] = useState('')
+  const [newCatId, setCatId]    = useState('')
+  const [editing, setEditing]   = useState(null) // null | {} | category object
   const bump = useCallback(() => setRefresh(r => r + 1), [])
 
   const { data: categories = [] } = useQuery(() => getCategories(), [refresh])
@@ -31,14 +33,27 @@ export default function Categories() {
       <h1 className="text-xl font-semibold text-slate-100">Categories &amp; Rules</h1>
 
       {/* Categories list */}
-      <div className="card space-y-1">
-        <h2 className="text-sm font-semibold text-slate-400 mb-3">Categories</h2>
+      <div className="card space-y-3">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-slate-400">Categories</h2>
+          <button className="btn-primary text-xs py-1 px-3 flex items-center gap-1"
+            onClick={() => setEditing({})}>
+            <Plus size={13} /> Add
+          </button>
+        </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {categories.map(c => (
-            <div key={c.id} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50">
+            <div key={c.id}
+              className="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50">
               <span>{c.icon}</span>
-              <span className="text-sm text-slate-300">{c.name}</span>
-              <span className="ml-auto w-2 h-2 rounded-full" style={{ background: c.color }} />
+              <span className="text-sm text-slate-300 truncate flex-1">{c.name}</span>
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }} />
+              <button
+                className="opacity-0 group-hover:opacity-100 transition-opacity btn-ghost p-0.5 ml-1"
+                onClick={() => setEditing(c)}
+              >
+                <Pencil size={11} className="text-slate-500" />
+              </button>
             </div>
           ))}
         </div>
@@ -51,7 +66,6 @@ export default function Categories() {
           When a transaction description contains the keyword, it's automatically assigned that category.
         </p>
 
-        {/* Add rule form */}
         <form onSubmit={addRule} className="flex gap-2">
           <input
             className="input flex-1"
@@ -66,7 +80,6 @@ export default function Categories() {
           <button type="submit" className="btn-primary flex-shrink-0"><Plus size={14} /> Add</button>
         </form>
 
-        {/* Rules table */}
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-800 text-left">
@@ -81,7 +94,8 @@ export default function Categories() {
                 <td className="py-2 font-mono text-slate-300 text-xs">{r.pattern}</td>
                 <td className="py-2 text-slate-400 text-xs">{r.category_name}</td>
                 <td className="py-2">
-                  <button onClick={() => removeRule(r.id)} className="btn-ghost p-1 text-red-500 hover:text-red-400">
+                  <button onClick={() => removeRule(r.id)}
+                    className="btn-ghost p-1 text-red-500 hover:text-red-400">
                     <Trash2 size={13} />
                   </button>
                 </td>
@@ -93,6 +107,14 @@ export default function Categories() {
           </tbody>
         </table>
       </div>
+
+      {editing !== null && (
+        <CategoryModal
+          category={editing}
+          onSave={() => { setEditing(null); bump() }}
+          onClose={() => setEditing(null)}
+        />
+      )}
     </div>
   )
 }
