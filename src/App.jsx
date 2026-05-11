@@ -1,4 +1,5 @@
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { useEffect } from 'react'
 import { useDbStore } from '@/store/dbStore'
 import Layout from '@/components/layout/Layout'
 import Welcome from '@/pages/Welcome'
@@ -12,6 +13,11 @@ import Rules from '@/pages/Rules'
 
 export default function App() {
   const ready = useDbStore(s => s.ready)
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (ready) navigate('/dashboard', { replace: true })
+  }, [ready])
 
   if (!ready) return <Welcome />
 

@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Search, Info } from 'lucide-react'
+import { Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Search, Info, X } from 'lucide-react'
 import { getRules, deleteRule, getCategories } from '@/db/queries/categories'
 import { getTags } from '@/db/queries/tags'
 import { useQuery } from '@/hooks/useQuery'
@@ -95,11 +95,19 @@ export default function Rules() {
       <div className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
         <input
-          className="input pl-9"
+          className={`input pl-9 ${search ? 'pr-8' : ''}`}
           placeholder="Search rules…"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
+        {search && (
+          <button
+            onClick={() => setSearch('')}
+            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          >
+            <X size={14} />
+          </button>
+        )}
       </div>
 
       <div className="card p-0 overflow-hidden">

@@ -128,7 +128,7 @@ export default function Dashboard() {
                 </PieChart>
               </ResponsiveContainer>
 
-              <div className="flex-1 min-w-0 space-y-1.5 overflow-y-auto max-h-[180px] pr-1">
+              <div className="flex-1 min-w-0 space-y-1.5">
                 {byCategory.map(cat => {
                   const pct = totalSpend > 0 ? Math.round(cat.total / totalSpend * 100) : 0
                   return (

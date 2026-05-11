@@ -100,11 +100,19 @@ export default function Transactions() {
         <div className="relative flex-1 min-w-48">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
-            className="input pl-9 w-full"
+            className={`input pl-9 w-full ${search ? 'pr-8' : ''}`}
             placeholder="Search…"
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            >
+              <X size={14} />
+            </button>
+          )}
         </div>
 
         <select
