@@ -67,6 +67,28 @@ export default function Welcome() {
           </button>
         </div>
 
+        <div className="card space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Getting started</p>
+          <ol className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-900/50 text-brand-400 flex items-center justify-center text-xs font-bold">1</span>
+              Create a new database or open an existing one above.
+            </li>
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-900/50 text-brand-400 flex items-center justify-center text-xs font-bold">2</span>
+              Add your accounts (checking, savings, credit cards) under <strong className="text-slate-700 dark:text-slate-300">Accounts</strong>.
+            </li>
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-900/50 text-brand-400 flex items-center justify-center text-xs font-bold">3</span>
+              Import transactions from your bank's CSV or Excel export via <strong className="text-slate-700 dark:text-slate-300">Import</strong>.
+            </li>
+            <li className="flex gap-3">
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-900/50 text-brand-400 flex items-center justify-center text-xs font-bold">4</span>
+              Set up categories and budgets to start tracking your spending.
+            </li>
+          </ol>
+        </div>
+
         <p className="text-center text-xs text-slate-400 dark:text-slate-600">
           100% local — no account, no server, no tracking.
         </p>

@@ -27,7 +27,29 @@ export const useDbStore = create((set, get) => {
     async openNew() {
       closeDatabase()
       await initDatabase()
-      set({ ready: true, dbName: 'New Database', fileHandle: null })
+
+      if ('showSaveFilePicker' in window) {
+        const date = new Date().toISOString().slice(0, 10)
+        try {
+          const handle = await window.showSaveFilePicker({
+            suggestedName: `finapp-${date}.sqlite`,
+            types: [{ description: 'SQLite Database', accept: { 'application/x-sqlite3': ['.sqlite', '.db'] } }]
+          })
+          const data = exportDatabase()
+          const writable = await handle.createWritable()
+          await writable.write(data)
+          await writable.close()
+          set({ ready: true, dbName: handle.name, fileHandle: handle })
+        } catch (e) {
+          if (e.name === 'AbortError') {
+            closeDatabase()
+            return  // user cancelled — stay on welcome screen
+          }
+          set({ ready: true, dbName: 'New Database', fileHandle: null })
+        }
+      } else {
+        set({ ready: true, dbName: 'New Database', fileHandle: null })
+      }
     },
 
     async openFile(file) {

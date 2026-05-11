@@ -225,7 +225,7 @@ export default function ImportPage() {
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1">
                           <select
-                            className="bg-transparent text-xs text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded px-2 py-1
+                            className="bg-white dark:bg-slate-800 text-xs text-slate-700 dark:text-slate-100 border border-slate-300 dark:border-slate-700 rounded px-2 py-1
                                        focus:outline-none focus:border-brand-500"
                             value={row.category_id ?? ''}
                             onChange={e => updateRowCategory(i, e.target.value ? Number(e.target.value) : null)}

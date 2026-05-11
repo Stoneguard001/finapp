@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Search } from 'lucide-react'
+import { Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Search, Info } from 'lucide-react'
 import { getRules, deleteRule, getCategories } from '@/db/queries/categories'
 import { getTags } from '@/db/queries/tags'
 import { useQuery } from '@/hooks/useQuery'
@@ -87,6 +87,11 @@ export default function Rules() {
         <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Rule</button>
       </div>
 
+      <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-100 dark:bg-slate-800/60 text-xs text-slate-500 dark:text-slate-400">
+        <Info size={13} className="flex-shrink-0 mt-0.5 text-slate-400 dark:text-slate-500" />
+        <span>Rules are tested from highest priority to lowest — the first match wins. Use higher numbers for more specific rules so they aren't overridden by broader ones.</span>
+      </div>
+
       <div className="relative">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
         <input
@@ -105,7 +110,16 @@ export default function Rules() {
               <Th col="pattern">Pattern</Th>
               <Th col="category">Category</Th>
               <Th col="tags">Tags</Th>
-              <Th col="priority">Priority</Th>
+              <Th col="priority">
+                Priority
+                <span
+                  title="Higher number = higher priority. The first matching rule wins."
+                  onClick={e => e.stopPropagation()}
+                  className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 cursor-default"
+                >
+                  <Info size={11} />
+                </span>
+              </Th>
               <th className="px-4 py-3 w-12"></th>
             </tr>
           </thead>

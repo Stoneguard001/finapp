@@ -12,7 +12,7 @@ export default function Header() {
         <Database size={14} className="text-brand-500" />
         <span className="truncate max-w-xs">{dbName}</span>
         {autoSave && fileHandle && (
-          <span className="flex items-center gap-1 text-[10px] text-brand-400 bg-brand-900/40 px-1.5 py-0.5 rounded">
+          <span className="flex items-center gap-1 text-[10px] text-brand-700 bg-brand-100 dark:text-brand-400 dark:bg-brand-900/40 px-1.5 py-0.5 rounded">
             <span className="w-1.5 h-1.5 rounded-full bg-brand-400 animate-pulse" />
             auto-save
           </span>
