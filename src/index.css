@@ -4,7 +4,10 @@
 
 @layer base {
   * { box-sizing: border-box; }
-  body { font-family: system-ui, -apple-system, sans-serif; }
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  }
   ::-webkit-scrollbar { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track { background: transparent; }
   ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
@@ -12,7 +15,7 @@
 
 @layer components {
   .card {
-    @apply bg-slate-900 border border-slate-800 rounded-xl p-4;
+    @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4;
   }
   .btn {
     @apply inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
@@ -22,17 +25,18 @@
     @apply btn bg-brand-600 hover:bg-brand-500 text-white;
   }
   .btn-ghost {
-    @apply btn bg-transparent hover:bg-slate-800 text-slate-300 hover:text-white;
+    @apply btn bg-transparent hover:bg-slate-100 dark:hover:bg-slate-800
+           text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white;
   }
   .btn-danger {
     @apply btn bg-red-900/40 hover:bg-red-800/60 text-red-400 hover:text-red-300;
   }
   .input {
-    @apply w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm
-           text-slate-100 placeholder-slate-500
+    @apply w-full bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-lg px-3 py-2 text-sm
+           text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500
            focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent;
   }
   .label {
-    @apply block text-xs font-medium text-slate-400 mb-1;
+    @apply block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1;
   }
 }

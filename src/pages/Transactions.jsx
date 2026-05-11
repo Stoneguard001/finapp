@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Search, Pencil, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
 import { getTransactions, deleteTransaction } from '@/db/queries/transactions'
@@ -11,10 +12,18 @@ import CategoryBadge from '@/components/CategoryBadge'
 import TransactionModal from '@/components/transactions/TransactionModal'
 
 export default function Transactions() {
-  const [selectedMonth, setSelectedMonth] = useState(new Date())
+  const [searchParams] = useSearchParams()
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const m = searchParams.get('month')
+    if (m) {
+      const [y, mo] = m.split('-').map(Number)
+      return new Date(y, mo - 1, 1)
+    }
+    return new Date()
+  })
   const [search, setSearch]               = useState('')
   const [filterAccount, setFilterAccount] = useState('')
-  const [filterCategory, setFilterCategory] = useState('')
+  const [filterCategory, setFilterCategory] = useState(() => searchParams.get('category') ?? '')
   const [filterTag, setFilterTag]         = useState(null)
   const [editing, setEditing]             = useState(null)
   const [refresh, setRefresh]             = useState(0)
@@ -72,7 +81,7 @@ export default function Transactions() {
           <button onClick={() => setSelectedMonth(m => subMonths(m, 1))} className="btn-ghost p-1">
             <ChevronLeft size={18} />
           </button>
-          <h1 className="text-xl font-semibold text-slate-100 w-44 text-center">
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
             {format(selectedMonth, 'MMMM yyyy')}
           </h1>
           <button
@@ -80,7 +89,7 @@ export default function Transactions() {
             className="btn-ghost p-1"
             disabled={isCurrentMonth}
           >
-            <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-700' : ''} />
+            <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-300 dark:text-slate-700' : ''} />
           </button>
         </div>
         <button className="btn-primary" onClick={() => setEditing({})}>+ Add</button>
@@ -89,7 +98,7 @@ export default function Transactions() {
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-48">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
             className="input pl-9 w-full"
             placeholder="Search…"
@@ -117,7 +126,7 @@ export default function Transactions() {
         </select>
 
         {(activeFilters > 0 || search) && (
-          <button onClick={clearFilters} className="btn-ghost text-xs text-slate-500 flex items-center gap-1">
+          <button onClick={clearFilters} className="btn-ghost text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
             <X size={13} /> Clear
           </button>
         )}
@@ -126,7 +135,7 @@ export default function Transactions() {
       {/* Tag filter */}
       {tags.length > 0 && (
         <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs text-slate-500">Tags:</span>
+          <span className="text-xs text-slate-400 dark:text-slate-500">Tags:</span>
           {tags.map(tag => (
             <button
               key={tag.id}
@@ -145,28 +154,28 @@ export default function Transactions() {
       <div className="card p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-800 text-left">
-              <th className="px-4 py-3 text-xs font-medium text-slate-500">Date</th>
-              <th className="px-4 py-3 text-xs font-medium text-slate-500">Description</th>
-              <th className="px-4 py-3 text-xs font-medium text-slate-500">Account</th>
-              <th className="px-4 py-3 text-xs font-medium text-slate-500">Category</th>
-              <th className="px-4 py-3 text-xs font-medium text-slate-500 text-right">Amount</th>
+            <tr className="border-b border-slate-200 dark:border-slate-800 text-left">
+              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Date</th>
+              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Description</th>
+              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Account</th>
+              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Category</th>
+              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500 text-right">Amount</th>
               <th className="px-4 py-3 w-16"></th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-600">
+                <td colSpan={6} className="px-4 py-10 text-center text-slate-400 dark:text-slate-600">
                   {transactions.length === 0 ? 'No transactions this month' : 'No transactions match your filters'}
                 </td>
               </tr>
             )}
             {filtered.map(tx => (
-              <tr key={tx.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                <td className="px-4 py-3 text-slate-400 whitespace-nowrap">{fmtDate(tx.date)}</td>
+              <tr key={tx.id} className="border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-colors">
+                <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{fmtDate(tx.date)}</td>
                 <td className="px-4 py-3 max-w-xs">
-                  <div className="text-slate-200 truncate">{tx.description}</div>
+                  <div className="text-slate-800 dark:text-slate-200 truncate">{tx.description}</div>
                   {tx.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {tx.tags.map(tag => (
@@ -180,7 +189,7 @@ export default function Transactions() {
                   )}
                 </td>
                 <td className="px-4 py-3">
-                  <span className="flex items-center gap-1.5 text-slate-400 text-xs">
+                  <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs">
                     <span className="w-2 h-2 rounded-full" style={{ background: tx.account_color ?? '#64748b' }} />
                     {tx.account_name}
                   </span>
@@ -188,7 +197,7 @@ export default function Transactions() {
                 <td className="px-4 py-3">
                   <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
                 </td>
-                <td className={`px-4 py-3 text-right font-mono font-medium ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-200'}`}>
+                <td className={`px-4 py-3 text-right font-mono font-medium ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-800 dark:text-slate-200'}`}>
                   {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
                 </td>
                 <td className="px-4 py-3">
@@ -203,7 +212,7 @@ export default function Transactions() {
         </table>
 
         {filtered.length > 0 && (
-          <div className="px-4 py-2 border-t border-slate-800 flex justify-between text-xs text-slate-500">
+          <div className="px-4 py-2 border-t border-slate-200 dark:border-slate-800 flex justify-between text-xs text-slate-400 dark:text-slate-500">
             <span>{filtered.length} transaction{filtered.length !== 1 ? 's' : ''}</span>
             <span>
               {filtered.some(t => t.amount < 0) && (

@@ -25,7 +25,7 @@ export default function RuleModal({ categories, tags = [], initialPattern = '', 
 
   return (
     <Modal title="Save Category Rule" onClose={onClose}>
-      <p className="text-sm text-slate-400">
+      <p className="text-sm text-slate-600 dark:text-slate-400">
         Transactions whose description matches this pattern will be auto-categorized on import.
       </p>
       <div>
@@ -36,7 +36,7 @@ export default function RuleModal({ categories, tags = [], initialPattern = '', 
           onChange={e => setPattern(e.target.value.toUpperCase())}
           placeholder="HONDA"
         />
-        <p className="text-xs text-slate-600 mt-1">Trim to just the keyword — e.g. "HONDA" not the full description</p>
+        <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">Trim to just the keyword — e.g. "HONDA" not the full description</p>
       </div>
       <div>
         <label className="label">Match type</label>
@@ -54,12 +54,12 @@ export default function RuleModal({ categories, tags = [], initialPattern = '', 
         </select>
       </div>
       <div>
-        <label className="label">Tags <span className="text-slate-600 font-normal">(applied automatically with this rule)</span></label>
+        <label className="label">Tags <span className="text-slate-400 dark:text-slate-600 font-normal">(applied automatically with this rule)</span></label>
         <TagPicker tags={tags} selected={selectedTagIds} onChange={setSelectedTagIds} />
       </div>
       <div>
         <label className="label">
-          Priority <span className="text-slate-600 font-normal">(higher wins when multiple rules match)</span>
+          Priority <span className="text-slate-400 dark:text-slate-600 font-normal">(higher wins when multiple rules match)</span>
         </label>
         <input type="number" className="input" value={priority} min={0}
           onChange={e => setPriority(e.target.value)} />

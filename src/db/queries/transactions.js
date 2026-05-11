@@ -85,7 +85,7 @@ export const deleteTransaction = (id) =>
   run('DELETE FROM transactions WHERE id=?', [id])
 
 export const getSpendingByCategory = ({ startDate, endDate } = {}) => {
-  const conditions = ["t.amount < 0", "t.is_transfer = 0"]
+  const conditions = ["t.amount < 0", "t.is_transfer = 0", "LOWER(COALESCE(c.name,'')) != 'transfer'"]
   const params = []
   if (startDate) { conditions.push('t.date>=?'); params.push(startDate) }
   if (endDate)   { conditions.push('t.date<=?'); params.push(endDate) }

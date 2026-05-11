@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { TrendingDown, TrendingUp, Wallet, PiggyBank, ChevronLeft, ChevronRight } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
@@ -6,10 +7,13 @@ import { getTransactions, getMonthlyTotals, getSpendingByCategory } from '@/db/q
 import { getBudgetsWithSpending, PERIOD_TO_MONTHLY } from '@/db/queries/budgets'
 import { getBudgets } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
+import { useTheme } from '@/context/ThemeContext'
 import { fmt } from '@/lib/fmt'
 
 export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(new Date())
+  const { dark } = useTheme()
+  const navigate = useNavigate()
   const today = new Date()
   const isCurrentMonth = isSameMonth(selectedMonth, today)
 
@@ -44,6 +48,17 @@ export default function Dashboard() {
   const overBudget  = budgetsWithSpend.filter(b => b.pct >= 100).length
   const totalSpend  = useMemo(() => byCategory.reduce((s, c) => s + c.total, 0), [byCategory])
 
+  function handleCategoryClick(cat) {
+    if (!cat.id) return
+    navigate(`/transactions?month=${format(selectedMonth, 'yyyy-MM')}&category=${cat.id}`)
+  }
+
+  const tooltipStyle = dark
+    ? { background: '#1e293b', border: '1px solid #334155', borderRadius: 8, color: '#f1f5f9' }
+    : { background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, color: '#1e293b' }
+  const tooltipTextStyle = { color: dark ? '#f1f5f9' : '#1e293b' }
+  const tickColor = dark ? '#94a3b8' : '#64748b'
+
   return (
     <div className="space-y-6">
       {/* Month navigation */}
@@ -51,7 +66,7 @@ export default function Dashboard() {
         <button onClick={() => setSelectedMonth(m => subMonths(m, 1))} className="btn-ghost p-1">
           <ChevronLeft size={18} />
         </button>
-        <h1 className="text-xl font-semibold text-slate-100 w-44 text-center">
+        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
           {format(selectedMonth, 'MMMM yyyy')}
         </h1>
         <button
@@ -59,7 +74,7 @@ export default function Dashboard() {
           className="btn-ghost p-1"
           disabled={isCurrentMonth}
         >
-          <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-700' : ''} />
+          <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-300 dark:text-slate-700' : ''} />
         </button>
       </div>
 
@@ -75,16 +90,13 @@ export default function Dashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly bar chart */}
         <div className="card">
-          <h2 className="text-sm font-medium text-slate-400 mb-4">Income vs Expenses (6 months)</h2>
+          <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">Income vs Expenses (6 months)</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={monthly} barGap={4}>
-              <XAxis dataKey="month" tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#94a3b8', fontSize: 11 }} axisLine={false} tickLine={false}
+              <XAxis dataKey="month" tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false}
                 tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip
-                contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                formatter={v => [`$${v.toFixed(2)}`, undefined]}
-              />
+              <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle} formatter={v => [`$${v.toFixed(2)}`, undefined]} />
               <Bar dataKey="income"   fill="#22c55e" radius={[4, 4, 0, 0]} name="Income" />
               <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expenses" />
             </BarChart>
@@ -93,9 +105,9 @@ export default function Dashboard() {
 
         {/* Spending pie chart */}
         <div className="card">
-          <h2 className="text-sm font-medium text-slate-400 mb-2">Spending by Category</h2>
+          <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Spending by Category</h2>
           {byCategory.length === 0 ? (
-            <p className="text-slate-600 text-sm text-center py-12">No spending data for this month</p>
+            <p className="text-slate-400 dark:text-slate-600 text-sm text-center py-12">No spending data for this month</p>
           ) : (
             <div className="flex gap-4">
               <ResponsiveContainer width={180} height={180} className="flex-shrink-0">
@@ -103,13 +115,16 @@ export default function Dashboard() {
                   <Pie data={byCategory} dataKey="total" cx="50%" cy="50%"
                     innerRadius={48} outerRadius={82} paddingAngle={2}>
                     {byCategory.map((cat, i) => (
-                      <Cell key={cat.id ?? i} fill={cat.color ?? '#475569'} />
+                      <Cell key={cat.id ?? i} fill={cat.color ?? '#475569'}
+                        onClick={() => handleCategoryClick(cat)}
+                        style={{ cursor: cat.id ? 'pointer' : 'default' }} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 8 }}
-                    formatter={(v, name) => [fmt(v), name ?? 'Uncategorized']}
-                  />
+                  <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle}
+                    formatter={(v, name) => {
+                      const pct = totalSpend > 0 ? Math.round(v / totalSpend * 100) : 0
+                      return [`${fmt(v)} (${pct}%)`, name ?? 'Uncategorized']
+                    }} />
                 </PieChart>
               </ResponsiveContainer>
 
@@ -117,12 +132,17 @@ export default function Dashboard() {
                 {byCategory.map(cat => {
                   const pct = totalSpend > 0 ? Math.round(cat.total / totalSpend * 100) : 0
                   return (
-                    <div key={cat.id ?? 'uncategorized'} className="flex items-center gap-1.5 text-xs">
+                    <div
+                      key={cat.id ?? 'uncategorized'}
+                      onClick={() => handleCategoryClick(cat)}
+                      className={`flex items-center gap-1.5 text-xs rounded px-1 -mx-1 py-0.5 transition-colors
+                        ${cat.id ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800' : ''}`}
+                    >
                       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.color ?? '#475569' }} />
                       <span>{cat.icon ?? '❓'}</span>
-                      <span className="text-slate-300 truncate flex-1">{cat.name ?? 'Uncategorized'}</span>
-                      <span className="text-slate-500 flex-shrink-0">{pct}%</span>
-                      <span className="text-slate-400 font-mono flex-shrink-0">{fmt(cat.total)}</span>
+                      <span className="text-slate-700 dark:text-slate-300 truncate flex-1">{cat.name ?? 'Uncategorized'}</span>
+                      <span className="text-slate-400 dark:text-slate-500 flex-shrink-0">{pct}%</span>
+                      <span className="text-slate-600 dark:text-slate-400 font-mono flex-shrink-0">{fmt(cat.total)}</span>
                     </div>
                   )
                 })}
@@ -135,7 +155,7 @@ export default function Dashboard() {
       {/* Budget progress */}
       {budgetsWithSpend.length > 0 && (
         <div className="card">
-          <h2 className="text-sm font-medium text-slate-400 mb-4">Budget Progress</h2>
+          <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">Budget Progress</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {budgetsWithSpend.slice(0, 9).map(b => <BudgetBar key={b.id} budget={b} />)}
           </div>
@@ -148,12 +168,12 @@ export default function Dashboard() {
 function KpiCard({ label, value, icon: Icon, color }) {
   return (
     <div className="card flex items-center gap-3">
-      <div className="w-10 h-10 rounded-lg bg-slate-800 flex items-center justify-center flex-shrink-0">
+      <div className="w-10 h-10 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
         <Icon size={18} className={color} />
       </div>
       <div className="min-w-0">
         <div className="text-xs text-slate-500">{label}</div>
-        <div className="text-lg font-semibold text-slate-100 truncate">{value}</div>
+        <div className="text-lg font-semibold text-slate-900 dark:text-slate-100 truncate">{value}</div>
       </div>
     </div>
   )
@@ -162,20 +182,20 @@ function KpiCard({ label, value, icon: Icon, color }) {
 function BudgetBar({ budget }) {
   const over = budget.pct >= 100
   return (
-    <div className="bg-slate-800/50 rounded-lg p-3">
+    <div className="bg-slate-100/50 dark:bg-slate-800/50 rounded-lg p-3">
       <div className="flex justify-between text-xs mb-1">
-        <span className="text-slate-300 font-medium truncate">{budget.name}</span>
-        <span className={over ? 'text-red-400' : 'text-slate-400'}>
+        <span className="text-slate-700 dark:text-slate-300 font-medium truncate">{budget.name}</span>
+        <span className={over ? 'text-red-400' : 'text-slate-500 dark:text-slate-400'}>
           {fmt(budget.spent)} / {fmt(budget.amount)}
         </span>
       </div>
-      <div className="h-1.5 bg-slate-700 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
         <div
           className={`h-full rounded-full transition-all ${over ? 'bg-red-500' : 'bg-brand-500'}`}
           style={{ width: `${Math.min(100, budget.pct)}%` }}
         />
       </div>
-      <div className="text-xs text-slate-600 mt-1 capitalize">{budget.period.replace('_', '-')}</div>
+      <div className="text-xs text-slate-400 dark:text-slate-600 mt-1 capitalize">{budget.period.replace('_', '-')}</div>
     </div>
   )
 }

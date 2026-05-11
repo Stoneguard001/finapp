@@ -26,7 +26,7 @@ export default function ImportPage() {
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState(null)
   const [pdfData, setPdfData]         = useState(null)
-  const [savingRuleFor, setSavingRuleFor] = useState(null) // { idx, pattern, categoryId }
+  const [savingRuleFor, setSavingRuleFor] = useState(null)
 
   const { data: accounts = [] }   = useQuery(() => getAccounts())
   const { data: categories = [] } = useQuery(() => getCategories())
@@ -57,7 +57,6 @@ export default function ImportPage() {
       } else {
         throw new Error(`Unsupported file type: .${ext}`)
       }
-      // Auto-apply category rules
       const enriched = parsed.rows.map(r => {
         const match = applyRules(r.description ?? '', rules)
         return { ...r, category_id: match?.category_id ?? null, tag_ids: match?.tag_ids ?? [] }
@@ -78,7 +77,6 @@ export default function ImportPage() {
 
   function handleRuleSaved(newRule) {
     setSavingRuleFor(null)
-    // Apply the new rule immediately to any currently uncategorized rows
     setRows(prev => prev.map(r => {
       if (r.category_id) return r
       const match = applyRules(r.description, [newRule, ...rules])
@@ -90,7 +88,6 @@ export default function ImportPage() {
     if (!accountId) return alert('Select an account first')
     setLoading(true)
 
-    // Create import session
     const sessionId = run(
       `INSERT INTO import_sessions (account_id,filename,file_type,format_profile,rows_imported,rows_skipped)
        VALUES (?,?,?,?,?,?)`,
@@ -129,7 +126,7 @@ export default function ImportPage() {
 
   return (
     <div className="space-y-6 max-w-4xl">
-      <h1 className="text-xl font-semibold text-slate-100">Import Transactions</h1>
+      <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Import Transactions</h1>
 
       {/* Step: Upload */}
       {step === 'upload' && (
@@ -144,17 +141,19 @@ export default function ImportPage() {
 
           <div
             className={`border-2 border-dashed rounded-xl p-12 text-center transition-colors
-              ${loading ? 'border-brand-700 bg-brand-900/10' : 'border-slate-700 hover:border-slate-500 cursor-pointer'}`}
+              ${loading
+                ? 'border-brand-700 bg-brand-900/10'
+                : 'border-slate-300 dark:border-slate-700 hover:border-slate-400 dark:hover:border-slate-500 cursor-pointer'}`}
             onDrop={onDrop}
             onDragOver={e => e.preventDefault()}
           >
             <input type="file" accept=".csv,.xlsx,.xls,.pdf" className="hidden" id="file-input" onChange={onDrop} />
             <label htmlFor="file-input" className="cursor-pointer">
-              <Upload size={36} className="mx-auto mb-3 text-slate-600" />
-              <p className="text-slate-300 font-medium">
+              <Upload size={36} className="mx-auto mb-3 text-slate-400 dark:text-slate-600" />
+              <p className="text-slate-700 dark:text-slate-300 font-medium">
                 {loading ? 'Parsing…' : 'Drop a file here or click to browse'}
               </p>
-              <p className="text-slate-600 text-sm mt-1">CSV, Excel (.xlsx/.xls), or PDF bank statement</p>
+              <p className="text-slate-400 dark:text-slate-600 text-sm mt-1">CSV, Excel (.xlsx/.xls), or PDF bank statement</p>
             </label>
           </div>
 
@@ -171,7 +170,7 @@ export default function ImportPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-medium text-slate-100">Map PDF Columns</h2>
+              <h2 className="font-medium text-slate-900 dark:text-slate-100">Map PDF Columns</h2>
               <p className="text-slate-500 text-sm mt-0.5">{pdfData.grid.length} rows extracted · {pdfData.numCols} columns detected</p>
             </div>
             <button className="btn-ghost" onClick={reset}><X size={14} /> Cancel</button>
@@ -184,9 +183,9 @@ export default function ImportPage() {
       {step === 'preview' && (
         <div className="space-y-4">
           <div className="flex items-center justify-between">
-            <p className="text-slate-400 text-sm">
-              <span className="font-medium text-slate-200">{rows.length}</span> transactions parsed
-              {profile && <span className="text-slate-600"> · {profile}</span>}
+            <p className="text-slate-500 text-sm">
+              <span className="font-medium text-slate-800 dark:text-slate-200">{rows.length}</span> transactions parsed
+              {profile && <span className="text-slate-400 dark:text-slate-600"> · {profile}</span>}
             </p>
             <div className="flex gap-2">
               <button className="btn-ghost" onClick={reset}><X size={14} /> Cancel</button>
@@ -209,24 +208,24 @@ export default function ImportPage() {
           <div className="card p-0 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-slate-800 text-left">
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500">Date</th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500">Description</th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500">Category</th>
-                  <th className="px-4 py-3 text-xs font-medium text-slate-500 text-right">Amount</th>
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-left">
+                  <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Date</th>
+                  <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Description</th>
+                  <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Category</th>
+                  <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500 text-right">Amount</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, i) => {
                   const cat = categories.find(c => c.id === row.category_id)
                   return (
-                    <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/20">
-                      <td className="px-4 py-2.5 text-slate-400 whitespace-nowrap">{fmtDate(row.date)}</td>
-                      <td className="px-4 py-2.5 text-slate-200 max-w-xs truncate">{row.description}</td>
+                    <tr key={i} className="border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/20 dark:hover:bg-slate-800/20">
+                      <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{fmtDate(row.date)}</td>
+                      <td className="px-4 py-2.5 text-slate-800 dark:text-slate-200 max-w-xs truncate">{row.description}</td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1">
                           <select
-                            className="bg-transparent text-xs text-slate-300 border border-slate-700 rounded px-2 py-1
+                            className="bg-transparent text-xs text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 rounded px-2 py-1
                                        focus:outline-none focus:border-brand-500"
                             value={row.category_id ?? ''}
                             onChange={e => updateRowCategory(i, e.target.value ? Number(e.target.value) : null)}
@@ -238,14 +237,14 @@ export default function ImportPage() {
                           </select>
                           <button
                             title="Save as rule"
-                            className="btn-ghost p-1 text-slate-600 hover:text-brand-400 flex-shrink-0"
+                            className="btn-ghost p-1 text-slate-400 dark:text-slate-600 hover:text-brand-400 flex-shrink-0"
                             onClick={() => setSavingRuleFor({ idx: i, pattern: row.description, categoryId: row.category_id })}
                           >
                             <BookmarkPlus size={13} />
                           </button>
                         </div>
                       </td>
-                      <td className={`px-4 py-2.5 text-right font-mono ${row.amount >= 0 ? 'text-brand-400' : 'text-slate-300'}`}>
+                      <td className={`px-4 py-2.5 text-right font-mono ${row.amount >= 0 ? 'text-brand-400' : 'text-slate-700 dark:text-slate-300'}`}>
                         {row.amount >= 0 ? '+' : ''}{fmt(row.amount)}
                       </td>
                     </tr>
@@ -262,7 +261,7 @@ export default function ImportPage() {
         <div className="card text-center py-16 space-y-4">
           <CheckCircle size={48} className="mx-auto text-brand-400" />
           <div>
-            <p className="text-xl font-semibold text-slate-100">{result.imported} transactions imported</p>
+            <p className="text-xl font-semibold text-slate-900 dark:text-slate-100">{result.imported} transactions imported</p>
             {result.skipped > 0 && (
               <p className="text-slate-500 text-sm mt-1">{result.skipped} duplicates skipped</p>
             )}

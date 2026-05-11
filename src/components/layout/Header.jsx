@@ -1,12 +1,14 @@
-import { Save, X, Database, Zap, ZapOff } from 'lucide-react'
+import { Save, X, Database, Zap, ZapOff, Sun, Moon } from 'lucide-react'
 import { useDbStore } from '@/store/dbStore'
+import { useTheme } from '@/context/ThemeContext'
 
 export default function Header() {
   const { dbName, fileHandle, autoSave, save, saveAs, toggleAutoSave, close } = useDbStore()
+  const { dark, toggle } = useTheme()
 
   return (
-    <header className="h-12 flex items-center justify-between px-6 bg-slate-900 border-b border-slate-800 flex-shrink-0">
-      <div className="flex items-center gap-2 text-sm text-slate-400">
+    <header className="h-12 flex items-center justify-between px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
+      <div className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
         <Database size={14} className="text-brand-500" />
         <span className="truncate max-w-xs">{dbName}</span>
         {autoSave && fileHandle && (
@@ -19,9 +21,16 @@ export default function Header() {
 
       <div className="flex items-center gap-1">
         <button
+          onClick={toggle}
+          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="btn-ghost text-xs"
+        >
+          {dark ? <Sun size={14} /> : <Moon size={14} />}
+        </button>
+        <button
           onClick={toggleAutoSave}
           title={autoSave ? 'Auto-save on — click to disable' : 'Auto-save off — click to enable'}
-          className={`btn-ghost text-xs flex items-center gap-1.5 ${autoSave ? 'text-brand-400' : 'text-slate-500'}`}
+          className={`btn-ghost text-xs flex items-center gap-1.5 ${autoSave ? 'text-brand-400' : 'text-slate-400 dark:text-slate-500'}`}
         >
           {autoSave ? <Zap size={13} /> : <ZapOff size={13} />}
           Auto

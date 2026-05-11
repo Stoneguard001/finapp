@@ -8,7 +8,7 @@ import RuleModal from '@/components/RuleModal'
 const TYPE_LABEL = { contains: 'contains', starts_with: 'starts with', regex: 'regex' }
 
 function SortIcon({ col, sort }) {
-  if (sort.col !== col) return <ChevronsUpDown size={12} className="text-slate-600" />
+  if (sort.col !== col) return <ChevronsUpDown size={12} className="text-slate-400 dark:text-slate-600" />
   return sort.dir === 'asc'
     ? <ChevronUp size={12} className="text-brand-400" />
     : <ChevronDown size={12} className="text-brand-400" />
@@ -66,7 +66,7 @@ export default function Rules() {
   function Th({ col, children }) {
     return (
       <th
-        className="px-4 py-3 text-xs font-medium text-slate-500 text-left cursor-pointer select-none hover:text-slate-300 transition-colors"
+        className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500 text-left cursor-pointer select-none hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
         onClick={() => toggleSort(col)}
       >
         <span className="flex items-center gap-1">
@@ -81,14 +81,14 @@ export default function Rules() {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-slate-100">Category Rules</h1>
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Category Rules</h1>
           <p className="text-sm text-slate-500 mt-0.5">Auto-assign categories and tags when importing transactions</p>
         </div>
         <button className="btn-primary" onClick={() => setShowModal(true)}>+ Add Rule</button>
       </div>
 
       <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
         <input
           className="input pl-9"
           placeholder="Search rules…"
@@ -100,7 +100,7 @@ export default function Rules() {
       <div className="card p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-slate-800">
+            <tr className="border-b border-slate-200 dark:border-slate-800">
               <Th col="type">Match</Th>
               <Th col="pattern">Pattern</Th>
               <Th col="category">Category</Th>
@@ -112,16 +112,16 @@ export default function Rules() {
           <tbody>
             {processed.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-600">
+                <td colSpan={6} className="px-4 py-10 text-center text-slate-400 dark:text-slate-600">
                   {search ? 'No rules match your search' : 'No rules yet — add one, or use "Save as rule" when importing'}
                 </td>
               </tr>
             )}
             {processed.map(r => (
-              <tr key={r.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
-                <td className="px-4 py-3 text-slate-500 text-xs whitespace-nowrap">{TYPE_LABEL[r.pattern_type]}</td>
-                <td className="px-4 py-3 font-mono text-slate-200">{r.pattern}</td>
-                <td className="px-4 py-3 text-slate-300 whitespace-nowrap">{r.category_name}</td>
+              <tr key={r.id} className="border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-colors">
+                <td className="px-4 py-3 text-slate-400 dark:text-slate-500 text-xs whitespace-nowrap">{TYPE_LABEL[r.pattern_type]}</td>
+                <td className="px-4 py-3 font-mono text-slate-800 dark:text-slate-200">{r.pattern}</td>
+                <td className="px-4 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap">{r.category_name}</td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {r.tags.map(t => (

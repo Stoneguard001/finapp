@@ -12,6 +12,7 @@ export default function TransactionModal({ transaction, categories, accounts, ta
     amount:      transaction.amount ?? '',
     description: transaction.description ?? '',
     category_id: transaction.category_id ?? '',
+    is_transfer: transaction.is_transfer ?? 0,
     notes:       transaction.notes ?? ''
   })
   const [selectedTagIds, setSelectedTagIds] = useState(
@@ -20,13 +21,24 @@ export default function TransactionModal({ transaction, categories, accounts, ta
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
+  function handleCategoryChange(catId) {
+    const cat = categories.find(c => c.id === Number(catId))
+    const autoTransfer = cat?.name.toLowerCase() === 'transfer'
+    setForm(f => ({
+      ...f,
+      category_id: catId,
+      is_transfer: autoTransfer ? 1 : f.is_transfer
+    }))
+  }
+
   function handleSave() {
     if (!form.account_id || !form.date || form.amount === '') return
     const data = {
       ...form,
       amount:      parseFloat(form.amount),
       account_id:  Number(form.account_id),
-      category_id: form.category_id ? Number(form.category_id) : null
+      category_id: form.category_id ? Number(form.category_id) : null,
+      is_transfer: form.is_transfer ? 1 : 0
     }
     const id = isNew ? createTransaction(data) : transaction.id
     if (!isNew) updateTransaction(id, data)
@@ -60,10 +72,22 @@ export default function TransactionModal({ transaction, categories, accounts, ta
       </div>
       <div>
         <label className="label">Category</label>
-        <select className="input" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
+        <select className="input" value={form.category_id} onChange={e => handleCategoryChange(e.target.value)}>
           <option value="">Uncategorized</option>
           {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
         </select>
+      </div>
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Transfer</span>
+        <button
+          type="button"
+          onClick={() => set('is_transfer', form.is_transfer ? 0 : 1)}
+          className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none
+            ${form.is_transfer ? 'bg-brand-500' : 'bg-slate-300 dark:bg-slate-600'}`}
+        >
+          <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow transition-transform
+            ${form.is_transfer ? 'translate-x-4' : 'translate-x-0.5'}`} />
+        </button>
       </div>
       <div>
         <label className="label">Tags</label>

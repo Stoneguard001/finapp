@@ -33,13 +33,13 @@ export default function Accounts() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-100">Accounts</h1>
+        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Accounts</h1>
         <button className="btn-primary" onClick={() => setEditing({})}><Plus size={14} /> Add Account</button>
       </div>
 
       <div className="card inline-block">
         <div className="text-xs text-slate-500">Total Balance (non-credit)</div>
-        <div className="text-2xl font-bold text-slate-100">{fmt(totalBalance)}</div>
+        <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{fmt(totalBalance)}</div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -49,20 +49,20 @@ export default function Accounts() {
               <div className="flex items-center gap-2">
                 <div className="w-3 h-3 rounded-full" style={{ background: a.color }} />
                 <div>
-                  <div className="font-medium text-slate-100">{a.name}</div>
+                  <div className="font-medium text-slate-900 dark:text-slate-100">{a.name}</div>
                   {a.institution && <div className="text-xs text-slate-500">{a.institution}</div>}
                 </div>
               </div>
               <div className="flex gap-1">
-                <button onClick={() => setEditing(a)}      className="btn-ghost p-1"><Pencil  size={13} /></button>
-                <button onClick={() => handleArchive(a.id)} className="btn-ghost p-1 text-slate-500"><Archive size={13} /></button>
+                <button onClick={() => setEditing(a)}       className="btn-ghost p-1"><Pencil  size={13} /></button>
+                <button onClick={() => handleArchive(a.id)} className="btn-ghost p-1 text-slate-400 dark:text-slate-500"><Archive size={13} /></button>
               </div>
             </div>
             <div>
-              <div className={`text-2xl font-bold ${a.balance >= 0 ? 'text-slate-100' : 'text-red-400'}`}>
+              <div className={`text-2xl font-bold ${a.balance >= 0 ? 'text-slate-900 dark:text-slate-100' : 'text-red-400'}`}>
                 {fmt(a.balance)}
               </div>
-              <div className="text-xs text-slate-600 capitalize mt-0.5">{a.type} · {a.currency}</div>
+              <div className="text-xs text-slate-400 dark:text-slate-600 capitalize mt-0.5">{a.type} · {a.currency}</div>
             </div>
           </div>
         ))}

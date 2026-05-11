@@ -57,15 +57,15 @@ export default function CategoryModal({ category, onSave, onClose }) {
           <span className="text-3xl w-10 text-center">{icon || '📦'}</span>
           <span className="text-xs text-slate-500">Click any emoji below to select it</span>
         </div>
-        <div className="h-48 overflow-y-auto rounded-lg border border-slate-700 bg-slate-800/40 p-2 space-y-3">
+        <div className="h-48 overflow-y-auto rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/40 p-2 space-y-3">
           {EMOJI_GROUPS.map(group => (
             <div key={group.label}>
-              <p className="text-[10px] text-slate-600 uppercase tracking-wide mb-1 px-1">{group.label}</p>
+              <p className="text-[10px] text-slate-400 dark:text-slate-600 uppercase tracking-wide mb-1 px-1">{group.label}</p>
               <div className="flex flex-wrap gap-0.5">
                 {group.emojis.map((e, i) => (
                   <button key={i} type="button"
                     onClick={() => setIcon(e)}
-                    className={`text-xl w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-slate-700
+                    className={`text-xl w-9 h-9 rounded-lg flex items-center justify-center transition-colors hover:bg-slate-200 dark:hover:bg-slate-700
                       ${icon === e ? 'bg-brand-900/60 ring-1 ring-brand-500' : ''}`}>
                     {e}
                   </button>
@@ -81,7 +81,7 @@ export default function CategoryModal({ category, onSave, onClose }) {
         <div className="flex flex-wrap gap-2 mt-1">
           {PRESET_COLORS.map(c => (
             <button key={c} type="button"
-              className={`w-6 h-6 rounded-full border-2 transition-colors ${color === c ? 'border-white' : 'border-transparent'}`}
+              className={`w-6 h-6 rounded-full border-2 transition-colors ${color === c ? 'border-slate-900 dark:border-white' : 'border-transparent'}`}
               style={{ background: c }}
               onClick={() => setColor(c)}
             />
@@ -101,7 +101,7 @@ export default function CategoryModal({ category, onSave, onClose }) {
               className={`flex-1 py-2 rounded-lg border text-sm font-medium transition-colors
                 ${isIncome === opt.value
                   ? 'border-brand-500 bg-brand-900/40 text-brand-400'
-                  : 'border-slate-700 text-slate-400 hover:border-slate-500'}`}>
+                  : 'border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500'}`}>
               {opt.label}
             </button>
           ))}
@@ -109,7 +109,7 @@ export default function CategoryModal({ category, onSave, onClose }) {
       </div>
 
       <div className="flex items-center gap-3 pt-1">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-800/50 flex-1">
+        <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100/50 dark:bg-slate-800/50 flex-1">
           <span className="text-xl">{icon || '📦'}</span>
           <span className="text-sm font-medium" style={{ color }}>{name || 'Preview'}</span>
         </div>

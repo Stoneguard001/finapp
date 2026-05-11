@@ -35,7 +35,7 @@ export default function Budgets() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-100">Budgets</h1>
+        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Budgets</h1>
         <button className="btn-primary" onClick={() => setEditing({})}><Plus size={14} /> Add Budget</button>
       </div>
 
@@ -43,13 +43,13 @@ export default function Budgets() {
       <div className="grid grid-cols-2 gap-4">
         <div className="card">
           <div className="text-xs text-slate-500">Monthly Equivalent</div>
-          <div className="text-2xl font-bold text-slate-100">{fmt(monthlyEquivalent)}</div>
-          <div className="text-xs text-slate-600 mt-0.5">all budgets normalized</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{fmt(monthlyEquivalent)}</div>
+          <div className="text-xs text-slate-400 dark:text-slate-600 mt-0.5">all budgets normalized</div>
         </div>
         <div className="card">
           <div className="text-xs text-slate-500">Annual Equivalent</div>
-          <div className="text-2xl font-bold text-slate-100">{fmt(annualEquivalent)}</div>
-          <div className="text-xs text-slate-600 mt-0.5">all budgets normalized</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-slate-100">{fmt(annualEquivalent)}</div>
+          <div className="text-xs text-slate-400 dark:text-slate-600 mt-0.5">all budgets normalized</div>
         </div>
       </div>
 
@@ -59,7 +59,7 @@ export default function Budgets() {
         if (items.length === 0) return null
         return (
           <div key={period} className="space-y-2">
-            <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider">
+            <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
               {PERIOD_LABELS[period]}
             </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -104,7 +104,7 @@ function BudgetCard({ budget: b, onEdit, onArchive }) {
         <div className="min-w-0">
           <div className="flex items-center gap-1.5">
             {b.category_icon && <span>{b.category_icon}</span>}
-            <span className="font-medium text-slate-100 truncate">{b.name}</span>
+            <span className="font-medium text-slate-900 dark:text-slate-100 truncate">{b.name}</span>
           </div>
           {b.category_name && (
             <div className="text-xs text-slate-500 mt-0.5">{b.category_name}</div>
@@ -112,18 +112,18 @@ function BudgetCard({ budget: b, onEdit, onArchive }) {
         </div>
         <div className="flex gap-1 flex-shrink-0 ml-2">
           <button onClick={onEdit}    className="btn-ghost p-1"><Pencil  size={13} /></button>
-          <button onClick={onArchive} className="btn-ghost p-1 text-slate-500"><Archive size={13} /></button>
+          <button onClick={onArchive} className="btn-ghost p-1 text-slate-400 dark:text-slate-500"><Archive size={13} /></button>
         </div>
       </div>
 
       <div>
         <div className="flex justify-between text-xs mb-1.5">
-          <span className={over ? 'text-red-400 font-medium' : warn ? 'text-yellow-400' : 'text-slate-400'}>
+          <span className={over ? 'text-red-400 font-medium' : warn ? 'text-yellow-500' : 'text-slate-600 dark:text-slate-400'}>
             {fmt(b.spent)} spent
           </span>
           <span className="text-slate-500">{fmt(b.amount)} budget</span>
         </div>
-        <div className="h-2 bg-slate-800 rounded-full overflow-hidden">
+        <div className="h-2 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
           <div
             className={`h-full rounded-full transition-all ${over ? 'bg-red-500' : warn ? 'bg-yellow-500' : 'bg-brand-500'}`}
             style={{ width: `${Math.min(100, b.pct)}%` }}
@@ -133,11 +133,11 @@ function BudgetCard({ budget: b, onEdit, onArchive }) {
           <span className={over ? 'text-red-400' : 'text-slate-500'}>
             {over ? `${fmt(Math.abs(b.remaining))} over` : `${fmt(b.remaining)} left`}
           </span>
-          <span className="text-slate-600">{b.period_start} → {b.period_end}</span>
+          <span className="text-slate-400 dark:text-slate-600">{b.period_start} → {b.period_end}</span>
         </div>
       </div>
 
-      {b.notes && <p className="text-xs text-slate-600 italic">{b.notes}</p>}
+      {b.notes && <p className="text-xs text-slate-400 dark:text-slate-600 italic">{b.notes}</p>}
     </div>
   )
 }
