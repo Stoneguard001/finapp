@@ -30,10 +30,12 @@ export const getTransactions = ({ accountId, categoryId, tagId, startDate, endDa
            c.name  as category_name,
            c.icon  as category_icon,
            c.color as category_color,
+           b.period as budget_item_period,
            GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw
     FROM transactions t
     LEFT JOIN accounts        a  ON a.id  = t.account_id
     LEFT JOIN categories      c  ON c.id  = t.category_id
+    LEFT JOIN budgets          b  ON b.id  = t.budget_item_id
     LEFT JOIN transaction_tags tt ON tt.transaction_id = t.id
     LEFT JOIN tags            tg ON tg.id = tt.tag_id
     ${where}
@@ -60,11 +62,11 @@ export const getTransaction = (id) => {
 
 export const createTransaction = (tx) =>
   run(`INSERT INTO transactions
-       (account_id,date,amount,description,payee,category_id,notes,import_session_id,is_transfer,cleared)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+       (account_id,date,amount,description,payee,category_id,notes,import_session_id,is_transfer,cleared,budget_item_id)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
     [tx.account_id, tx.date, tx.amount, tx.description, tx.payee ?? null,
      tx.category_id ?? null, tx.notes ?? null, tx.import_session_id ?? null,
-     tx.is_transfer ?? 0, tx.cleared ?? 1])
+     tx.is_transfer ?? 0, tx.cleared ?? 1, tx.budget_item_id ?? null])
 
 export const createTransactions = (txList) =>
   runMany(`INSERT INTO transactions

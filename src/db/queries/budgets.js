@@ -46,6 +46,9 @@ export const updateBudget = (id, fields) => {
 export const archiveBudget = (id) =>
   run('UPDATE budgets SET archived=1 WHERE id=?', [id])
 
+export const deleteBudget = (id) =>
+  run('DELETE FROM budgets WHERE id=?', [id])
+
 // Return current-period date range for a budget
 export function currentPeriodRange(budget, referenceDate = new Date()) {
   const ref = new Date(referenceDate)

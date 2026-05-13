@@ -2,18 +2,23 @@ import { useState } from 'react'
 import Modal from '@/components/Modal'
 import { createTransaction, updateTransaction } from '@/db/queries/transactions'
 import { setTransactionTags } from '@/db/queries/tags'
+import { getBudgets } from '@/db/queries/budgets'
+import { useQuery } from '@/hooks/useQuery'
 import TagPicker from '@/components/TagPicker'
 
 export default function TransactionModal({ transaction, categories, accounts, tags, onClose, onSave }) {
   const isNew = !transaction.id
+  const { data: allBudgets = [] } = useQuery(() => getBudgets())
+
   const [form, setForm] = useState({
-    account_id:  transaction.account_id ?? '',
-    date:        transaction.date ?? new Date().toISOString().slice(0, 10),
-    amount:      transaction.amount ?? '',
-    description: transaction.description ?? '',
-    category_id: transaction.category_id ?? '',
-    is_transfer: transaction.is_transfer ?? 0,
-    notes:       transaction.notes ?? ''
+    account_id:     transaction.account_id     ?? '',
+    date:           transaction.date           ?? new Date().toISOString().slice(0, 10),
+    amount:         transaction.amount         ?? '',
+    description:    transaction.description    ?? '',
+    category_id:    transaction.category_id    ?? '',
+    is_transfer:    transaction.is_transfer    ?? 0,
+    notes:          transaction.notes          ?? '',
+    budget_item_id: transaction.budget_item_id ?? ''
   })
   const [selectedTagIds, setSelectedTagIds] = useState(
     transaction.tags?.map(t => t.id) ?? []
@@ -26,19 +31,25 @@ export default function TransactionModal({ transaction, categories, accounts, ta
     const autoTransfer = cat?.name.toLowerCase() === 'transfer'
     setForm(f => ({
       ...f,
-      category_id: catId,
-      is_transfer: autoTransfer ? 1 : f.is_transfer
+      category_id:    catId,
+      budget_item_id: '',  // reset when category changes
+      is_transfer:    autoTransfer ? 1 : f.is_transfer
     }))
   }
+
+  const categoryBudgets = form.category_id
+    ? allBudgets.filter(b => b.category_id === Number(form.category_id))
+    : []
 
   function handleSave() {
     if (!form.account_id || !form.date || form.amount === '') return
     const data = {
       ...form,
-      amount:      parseFloat(form.amount),
-      account_id:  Number(form.account_id),
-      category_id: form.category_id ? Number(form.category_id) : null,
-      is_transfer: form.is_transfer ? 1 : 0
+      amount:         parseFloat(form.amount),
+      account_id:     Number(form.account_id),
+      category_id:    form.category_id    ? Number(form.category_id)    : null,
+      budget_item_id: form.budget_item_id ? Number(form.budget_item_id) : null,
+      is_transfer:    form.is_transfer ? 1 : 0
     }
     const id = isNew ? createTransaction(data) : transaction.id
     if (!isNew) updateTransaction(id, data)
@@ -77,6 +88,25 @@ export default function TransactionModal({ transaction, categories, accounts, ta
           {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
         </select>
       </div>
+      {categoryBudgets.length > 0 && (
+        <div>
+          <label className="label">Budget Item <span className="text-slate-400 font-normal">(optional)</span></label>
+          <select className="input" value={form.budget_item_id} onChange={e => set('budget_item_id', e.target.value)}>
+            <option value="">— none —</option>
+            {categoryBudgets.map(b => (
+              <option key={b.id} value={b.id}>{b.name} ({b.period})</option>
+            ))}
+          </select>
+          {form.budget_item_id && (() => {
+            const linked = categoryBudgets.find(b => b.id === Number(form.budget_item_id))
+            const hints = { annual: '12 months', semi_annual: '6 months', quarterly: '3 months' }
+            const hint  = linked ? hints[linked.period] : null
+            return hint
+              ? <p className="text-xs text-slate-400 mt-1">This charge will be amortized across {hint} in the monthly budget view.</p>
+              : null
+          })()}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Transfer</span>
         <button

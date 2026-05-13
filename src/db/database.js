@@ -1,6 +1,7 @@
 import initSqlJs from 'sql.js'
 import sqlWasm from 'sql.js/dist/sql-wasm.wasm?url'
 import schemaSQL from './schema.sql?raw'
+import { migrations } from './migrations'
 
 let _db = null
 let _SQL = null
@@ -8,25 +9,43 @@ let _onWrite = null
 
 export const setOnWrite = (fn) => { _onWrite = fn }
 
-// Additive migrations — safe to run against any existing database.
-// Add new statements here whenever the schema gains new tables or columns.
-const migrations = `
-  CREATE TABLE IF NOT EXISTS tags (
-    id    INTEGER PRIMARY KEY AUTOINCREMENT,
-    name  TEXT    NOT NULL UNIQUE,
-    color TEXT    NOT NULL DEFAULT '#64748b'
-  );
-  CREATE TABLE IF NOT EXISTS transaction_tags (
-    transaction_id INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
-    tag_id         INTEGER NOT NULL REFERENCES tags(id)         ON DELETE CASCADE,
-    PRIMARY KEY (transaction_id, tag_id)
-  );
-  CREATE TABLE IF NOT EXISTS rule_tags (
-    rule_id INTEGER NOT NULL REFERENCES category_rules(id) ON DELETE CASCADE,
-    tag_id  INTEGER NOT NULL REFERENCES tags(id)           ON DELETE CASCADE,
-    PRIMARY KEY (rule_id, tag_id)
-  );
-`
+function runMigrations(db) {
+  db.run(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      version     INTEGER PRIMARY KEY,
+      description TEXT    NOT NULL,
+      applied_at  TEXT    NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
+
+  const result = db.exec('SELECT version FROM schema_migrations')
+  const applied = new Set(result[0]?.values.map(r => r[0]) ?? [])
+
+  for (const migration of migrations) {
+    if (applied.has(migration.version)) continue
+
+    try {
+      if (migration.up !== null) {
+        if (typeof migration.up === 'function') {
+          migration.up(db)
+        } else if (Array.isArray(migration.up)) {
+          for (const sql of migration.up) db.run(sql)
+        } else {
+          db.run(migration.up)
+        }
+      }
+    } catch (e) {
+      // Tolerate "already exists" / "duplicate column" so that databases which
+      // received ad-hoc schema changes before this system existed can still be
+      // brought under version control without manual intervention.
+      const msg = String(e?.message ?? '')
+      if (!msg.includes('already exists') && !msg.includes('duplicate column')) throw e
+    }
+
+    db.run('INSERT OR IGNORE INTO schema_migrations (version, description) VALUES (?, ?)',
+      [migration.version, migration.description])
+  }
+}
 
 export async function initDatabase(fileBuffer = null) {
   if (!_SQL) {
@@ -35,12 +54,12 @@ export async function initDatabase(fileBuffer = null) {
 
   if (fileBuffer) {
     _db = new _SQL.Database(new Uint8Array(fileBuffer))
-    _db.run(migrations)
   } else {
     _db = new _SQL.Database()
     _db.run(schemaSQL)
   }
 
+  runMigrations(_db)
   return _db
 }
 
@@ -58,6 +77,23 @@ export function closeDatabase() {
     _db.close()
     _db = null
   }
+}
+
+// Returns all migrations with their applied status — useful for a settings/debug screen.
+export function getMigrationStatus() {
+  const result = getDb().exec(
+    'SELECT version, description, applied_at FROM schema_migrations ORDER BY version'
+  )
+  const applied = new Map(
+    (result[0]?.values ?? []).map(([version, description, applied_at]) =>
+      [version, { version, description, applied_at }]
+    )
+  )
+  return migrations.map(m => ({
+    version:     m.version,
+    description: m.description,
+    applied_at:  applied.get(m.version)?.applied_at ?? null
+  }))
 }
 
 // Helper: run a SELECT and return rows as plain objects

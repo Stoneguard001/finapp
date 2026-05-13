@@ -4,8 +4,7 @@ import { TrendingDown, TrendingUp, Wallet, PiggyBank, ChevronLeft, ChevronRight 
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
 import { getTransactions, getMonthlyTotals, getSpendingByCategory } from '@/db/queries/transactions'
-import { getBudgetsWithSpending, PERIOD_TO_MONTHLY } from '@/db/queries/budgets'
-import { getBudgets } from '@/db/queries/budgets'
+import { getBudgets, PERIOD_TO_MONTHLY } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
 import { useTheme } from '@/context/ThemeContext'
 import { fmt } from '@/lib/fmt'
@@ -42,10 +41,28 @@ export default function Dashboard() {
   const monthlyBudgetTotal = useMemo(() =>
     budgets.reduce((s, b) => s + b.amount * PERIOD_TO_MONTHLY[b.period], 0), [budgets])
 
-  const budgetsWithSpend = useMemo(() =>
-    getBudgetsWithSpending(budgets, transactions), [budgets, transactions])
+  // Group budget items by category, sum budgeted amounts, attach monthly spending.
+  // Sorted by utilisation % so the most critical categories surface first.
+  const categoryBudgetGroups = useMemo(() => {
+    const map = {}
+    for (const b of budgets) {
+      const key = b.category_id ?? 0
+      if (!map[key]) map[key] = {
+        category_id:   b.category_id,
+        category_name: b.category_name ?? 'Uncategorized',
+        category_icon: b.category_icon ?? '❓',
+        budgeted: 0
+      }
+      map[key].budgeted += b.amount * (PERIOD_TO_MONTHLY[b.period] ?? 1)
+    }
+    return Object.values(map).map(group => {
+      const spent = byCategory.find(c => c.id === group.category_id)?.total ?? 0
+      const pct   = group.budgeted > 0 ? Math.min(100, (spent / group.budgeted) * 100) : 0
+      return { ...group, spent, pct }
+    }).sort((a, b) => b.pct - a.pct)
+  }, [budgets, byCategory])
 
-  const overBudget  = budgetsWithSpend.filter(b => b.pct >= 100).length
+  const overBudget = categoryBudgetGroups.filter(g => g.pct >= 100).length
   const totalSpend  = useMemo(() => byCategory.reduce((s, c) => s + c.total, 0), [byCategory])
 
   function handleCategoryClick(cat) {
@@ -83,7 +100,7 @@ export default function Dashboard() {
         <KpiCard label="Spent"         value={fmt(monthExpenses)}      icon={TrendingDown} color="text-red-400"   />
         <KpiCard label="Income"        value={fmt(monthIncome)}         icon={TrendingUp}   color="text-brand-400" />
         <KpiCard label="Monthly Budget" value={fmt(monthlyBudgetTotal)} icon={PiggyBank}    color="text-blue-400"  />
-        <KpiCard label="Over Budget"   value={`${overBudget} budgets`} icon={Wallet}
+        <KpiCard label="Over Budget"   value={`${overBudget} ${overBudget === 1 ? 'category' : 'categories'}`} icon={Wallet}
           color={overBudget > 0 ? 'text-red-400' : 'text-brand-400'} />
       </div>
 
@@ -153,11 +170,11 @@ export default function Dashboard() {
       </div>
 
       {/* Budget progress */}
-      {budgetsWithSpend.length > 0 && (
+      {categoryBudgetGroups.length > 0 && (
         <div className="card">
           <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">Budget Progress</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {budgetsWithSpend.slice(0, 9).map(b => <BudgetBar key={b.id} budget={b} />)}
+            {categoryBudgetGroups.map(g => <CategoryBudgetBar key={g.category_id ?? 'none'} group={g} />)}
           </div>
         </div>
       )}
@@ -179,23 +196,31 @@ function KpiCard({ label, value, icon: Icon, color }) {
   )
 }
 
-function BudgetBar({ budget }) {
-  const over = budget.pct >= 100
+function CategoryBudgetBar({ group }) {
+  const over = group.pct >= 100
+  const warn = group.pct >= 80 && !over
   return (
     <div className="bg-slate-100/50 dark:bg-slate-800/50 rounded-lg p-3">
-      <div className="flex justify-between text-xs mb-1">
-        <span className="text-slate-700 dark:text-slate-300 font-medium truncate">{budget.name}</span>
-        <span className={over ? 'text-red-400' : 'text-slate-500 dark:text-slate-400'}>
-          {fmt(budget.spent)} / {fmt(budget.amount)}
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <span className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 min-w-0">
+          <span className="shrink-0">{group.category_icon}</span>
+          <span className="truncate">{group.category_name}</span>
+        </span>
+        <span className={`text-xs shrink-0 ${over ? 'text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+          {fmt(group.spent)} / {fmt(group.budgeted)}
         </span>
       </div>
       <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${over ? 'bg-red-500' : 'bg-brand-500'}`}
-          style={{ width: `${Math.min(100, budget.pct)}%` }}
+          className={`h-full rounded-full transition-all ${over ? 'bg-red-500' : warn ? 'bg-yellow-500' : 'bg-brand-500'}`}
+          style={{ width: `${Math.min(100, group.pct)}%` }}
         />
       </div>
-      <div className="text-xs text-slate-400 dark:text-slate-600 mt-1 capitalize">{budget.period.replace('_', '-')}</div>
+      <div className={`text-xs mt-1 ${over ? 'text-red-400' : 'text-slate-400 dark:text-slate-600'}`}>
+        {over
+          ? `${fmt(group.spent - group.budgeted)} over`
+          : `${fmt(group.budgeted - group.spent)} left`}
+      </div>
     </div>
   )
 }
