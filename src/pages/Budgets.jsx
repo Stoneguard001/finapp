@@ -5,29 +5,31 @@ import { getTransactions } from '@/db/queries/transactions'
 import { useQuery } from '@/hooks/useQuery'
 import { fmt, fmtDate } from '@/lib/fmt'
 import BudgetModal from '@/components/budgets/BudgetModal'
+import YearPicker from '@/components/YearPicker'
 
 // Convert any budget item's amount to its monthly or annual equivalent
 const toMonthly = (b) => b.amount * (PERIOD_TO_MONTHLY[b.period] ?? 1)
 const toAnnual  = (b) => toMonthly(b) * 12
 
 export default function Budgets() {
-  const [editing, setEditing]         = useState(null)
-  const [refresh, setRefresh]         = useState(0)
-  const [view, setView]               = useState('monthly')
-  const [expandedItemId, setExpanded] = useState(null)
+  const [editing, setEditing]           = useState(null)
+  const [refresh, setRefresh]           = useState(0)
+  const [view, setView]                 = useState('monthly')
+  const [expandedItemId, setExpanded]   = useState(null)
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const bump = useCallback(() => setRefresh(r => r + 1), [])
 
-  const now   = new Date()
-  const year  = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const now         = new Date()
+  const currentYear = now.getFullYear()
+  const month       = String(now.getMonth() + 1).padStart(2, '0')
 
-  const yearStart  = `${year}-01-01`
-  const yearEnd    = `${year}-12-31`
-  const monthStart = `${year}-${month}-01`
-  const monthEnd   = new Date(year, now.getMonth() + 1, 0).toISOString().slice(0, 10)
+  const yearStart  = `${selectedYear}-01-01`
+  const yearEnd    = `${selectedYear}-12-31`
+  const monthStart = `${currentYear}-${month}-01`
+  const monthEnd   = new Date(currentYear, now.getMonth() + 1, 0).toISOString().slice(0, 10)
 
   const { data: budgets = [] }      = useQuery(() => getBudgets(), [refresh])
-  const { data: transactions = [] } = useQuery(() => getTransactions({ startDate: yearStart, endDate: yearEnd, limit: 10000 }), [refresh])
+  const { data: transactions = [] } = useQuery(() => getTransactions({ startDate: yearStart, endDate: yearEnd, limit: 10000 }), [yearStart, refresh])
 
   // spending per category
   // linkedMonthly: amortized monthly contribution from transactions tied to a non-monthly budget item
@@ -87,17 +89,22 @@ export default function Budgets() {
         <button className="btn-primary" onClick={() => setEditing({})}><Plus size={14} /> Add Budget Item</button>
       </div>
 
-      {/* View toggle + totals */}
+      {/* View toggle + year picker + totals */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
-          <button
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${view === 'monthly' ? 'bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-900 dark:text-slate-100' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-            onClick={() => setView('monthly')}
-          >Monthly</button>
-          <button
-            className={`px-3 py-1 text-sm rounded-md transition-colors ${view === 'annual' ? 'bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-900 dark:text-slate-100' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-            onClick={() => setView('annual')}
-          >Annual</button>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+            <button
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${view === 'monthly' ? 'bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-900 dark:text-slate-100' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              onClick={() => setView('monthly')}
+            >Monthly</button>
+            <button
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${view === 'annual' ? 'bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-900 dark:text-slate-100' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              onClick={() => setView('annual')}
+            >Annual</button>
+          </div>
+          {view === 'annual' && (
+            <YearPicker year={selectedYear} onChange={setSelectedYear} />
+          )}
         </div>
         {budgets.length > 0 && (
           <div className="text-sm text-slate-500">

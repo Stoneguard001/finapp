@@ -9,18 +9,23 @@ import { getTags } from '@/db/queries/tags'
 import { useQuery } from '@/hooks/useQuery'
 import { fmt, fmtDate } from '@/lib/fmt'
 import CategoryBadge from '@/components/CategoryBadge'
+import YearPicker from '@/components/YearPicker'
 import TransactionModal from '@/components/transactions/TransactionModal'
 
 export default function Transactions() {
   const [searchParams] = useSearchParams()
   const [selectedMonth, setSelectedMonth] = useState(() => {
+    // URL param takes priority (e.g. navigating here from the dashboard)
     const m = searchParams.get('month')
     if (m) {
       const [y, mo] = m.split('-').map(Number)
       return new Date(y, mo - 1, 1)
     }
-    return new Date()
+    const stored = localStorage.getItem('txn_selectedMonth')
+    return stored ? new Date(stored) : new Date()
   })
+  const [viewMode, setViewMode]     = useState(() => localStorage.getItem('txn_viewMode') ?? 'month')
+  const [selectedYear, setSelectedYear] = useState(() => Number(localStorage.getItem('txn_selectedYear')) || new Date().getFullYear())
   const [search, setSearch]               = useState('')
   const [filterAccount, setFilterAccount] = useState('')
   const [filterCategory, setFilterCategory] = useState(() => searchParams.get('category') ?? '')
@@ -33,10 +38,33 @@ export default function Transactions() {
   const monthStart = format(startOfMonth(selectedMonth), 'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(selectedMonth),   'yyyy-MM-dd')
 
+  const startDate = viewMode === 'year' ? `${selectedYear}-01-01` : monthStart
+  const endDate   = viewMode === 'year' ? `${selectedYear}-12-31` : monthEnd
+  const fetchLimit = viewMode === 'year' ? 5000 : 2000
+
   const { data: transactions = [] } = useQuery(
-    () => getTransactions({ startDate: monthStart, endDate: monthEnd, limit: 2000 }),
-    [monthStart, refresh]
+    () => getTransactions({ startDate, endDate, limit: fetchLimit }),
+    [startDate, endDate, refresh]
   )
+
+  function changeMonth(updater) {
+    setSelectedMonth(prev => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      localStorage.setItem('txn_selectedMonth', next.toISOString())
+      return next
+    })
+  }
+
+  function changeYear(year) {
+    setSelectedYear(year)
+    localStorage.setItem('txn_selectedYear', String(year))
+  }
+
+  function switchMode(mode) {
+    if (mode === 'year') changeYear(selectedMonth.getFullYear())
+    setViewMode(mode)
+    localStorage.setItem('txn_viewMode', mode)
+  }
   const { data: categories = [] } = useQuery(() => getCategories())
   const { data: accounts = [] }   = useQuery(() => getAccounts())
   const { data: tags = [] }       = useQuery(() => getTags(), [refresh])
@@ -76,23 +104,40 @@ export default function Transactions() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <button onClick={() => setSelectedMonth(m => subMonths(m, 1))} className="btn-ghost p-1">
-            <ChevronLeft size={18} />
-          </button>
-          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
-            {format(selectedMonth, 'MMMM yyyy')}
-          </h1>
-          <button
-            onClick={() => setSelectedMonth(m => addMonths(m, 1))}
-            className="btn-ghost p-1"
-            disabled={isCurrentMonth}
-          >
-            <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-300 dark:text-slate-700' : ''} />
-          </button>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg shrink-0">
+            <button
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${viewMode === 'month' ? 'bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-900 dark:text-slate-100' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              onClick={() => switchMode('month')}
+            >Month</button>
+            <button
+              className={`px-3 py-1 text-sm rounded-md transition-colors ${viewMode === 'year' ? 'bg-white dark:bg-slate-700 shadow-sm font-medium text-slate-900 dark:text-slate-100' : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+              onClick={() => switchMode('year')}
+            >Year</button>
+          </div>
+
+          {viewMode === 'month' ? (
+            <div className="flex items-center gap-1">
+              <button onClick={() => changeMonth(m => subMonths(m, 1))} className="btn-ghost p-1">
+                <ChevronLeft size={18} />
+              </button>
+              <span className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
+                {format(selectedMonth, 'MMMM yyyy')}
+              </span>
+              <button
+                onClick={() => changeMonth(m => addMonths(m, 1))}
+                className="btn-ghost p-1"
+                disabled={isCurrentMonth}
+              >
+                <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-300 dark:text-slate-700' : ''} />
+              </button>
+            </div>
+          ) : (
+            <YearPicker year={selectedYear} onChange={changeYear} />
+          )}
         </div>
-        <button className="btn-primary" onClick={() => setEditing({})}>+ Add</button>
+        <button className="btn-primary shrink-0" onClick={() => setEditing({})}>+ Add</button>
       </div>
 
       {/* Filters */}
@@ -175,7 +220,7 @@ export default function Transactions() {
             {filtered.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center text-slate-400 dark:text-slate-600">
-                  {transactions.length === 0 ? 'No transactions this month' : 'No transactions match your filters'}
+                  {transactions.length === 0 ? `No transactions this ${viewMode}` : 'No transactions match your filters'}
                 </td>
               </tr>
             )}
