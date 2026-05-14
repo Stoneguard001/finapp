@@ -34,5 +34,22 @@ export const migrations = [
     version: 3,
     description: 'Add budget_item_id to transactions',
     up: 'ALTER TABLE transactions ADD COLUMN budget_item_id INTEGER REFERENCES budgets(id)'
+  },
+  {
+    version: 4,
+    description: 'Add category_groups table and group_id to categories',
+    up: `
+      CREATE TABLE IF NOT EXISTS category_groups (
+        id         INTEGER PRIMARY KEY AUTOINCREMENT,
+        name       TEXT    NOT NULL UNIQUE,
+        sort_order INTEGER NOT NULL DEFAULT 0
+      );
+      ALTER TABLE categories ADD COLUMN group_id INTEGER REFERENCES category_groups(id);
+    `
+  },
+  {
+    version: 5,
+    description: 'Add color to category_groups',
+    up: `ALTER TABLE category_groups ADD COLUMN color TEXT NOT NULL DEFAULT '#64748b'`
   }
 ]

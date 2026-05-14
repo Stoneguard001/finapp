@@ -1,14 +1,38 @@
 import { query, run } from '../database'
 
 export const getCategories = () =>
-  query('SELECT * FROM categories ORDER BY name')
+  query(`
+    SELECT c.*, g.name as group_name
+    FROM categories c
+    LEFT JOIN category_groups g ON g.id = c.group_id
+    ORDER BY c.name
+  `)
+
+export const getGroups = () =>
+  query('SELECT * FROM category_groups ORDER BY sort_order, name')
+
+export const createGroup = (name, color = '#64748b') =>
+  run('INSERT INTO category_groups (name, color) VALUES (?,?)', [name, color])
+
+export const updateGroup = (id, fields) => {
+  const cols = Object.keys(fields).map(k => `${k}=?`).join(',')
+  run(`UPDATE category_groups SET ${cols} WHERE id=?`, [...Object.values(fields), id])
+}
+
+export const deleteGroup = (id) => {
+  run('UPDATE categories SET group_id=NULL WHERE group_id=?', [id])
+  run('DELETE FROM category_groups WHERE id=?', [id])
+}
+
+export const cascadeGroupColor = (groupId, oldColor, newColor) =>
+  run('UPDATE categories SET color=? WHERE group_id=? AND color=?', [newColor, groupId, oldColor])
 
 export const getCategory = (id) =>
   query('SELECT * FROM categories WHERE id=?', [id])[0] ?? null
 
-export const createCategory = ({ name, icon = '📦', color = '#64748b', parent_id = null, is_income = 0 }) =>
-  run('INSERT INTO categories (name,icon,color,parent_id,is_income) VALUES (?,?,?,?,?)',
-    [name, icon, color, parent_id, is_income])
+export const createCategory = ({ name, icon = '📦', color = '#64748b', parent_id = null, is_income = 0, group_id = null }) =>
+  run('INSERT INTO categories (name,icon,color,parent_id,is_income,group_id) VALUES (?,?,?,?,?,?)',
+    [name, icon, color, parent_id, is_income, group_id])
 
 export const updateCategory = (id, fields) => {
   const cols = Object.keys(fields).map(k => `${k}=?`).join(',')

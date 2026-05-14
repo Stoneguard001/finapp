@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Modal from '@/components/Modal'
 import { createCategory, updateCategory } from '@/db/queries/categories'
 
@@ -34,16 +34,23 @@ const EMOJI_GROUPS = [
   { label: 'Savings & Goals', emojis: ['🐷', '🏦', '🎯', '🔒', '💪', '🚀', '🌟', '🏆'] },
 ]
 
-export default function CategoryModal({ category, onSave, onClose }) {
+export default function CategoryModal({ category, groups = [], onSave, onClose }) {
   const isNew = !category?.id
-  const [name,     setName]     = useState(category?.name  ?? '')
-  const [icon,     setIcon]     = useState(category?.icon  ?? '📦')
-  const [color,    setColor]    = useState(category?.color ?? '#64748b')
+  const [name,     setName]     = useState(category?.name     ?? '')
+  const [icon,     setIcon]     = useState(category?.icon     ?? '📦')
+  const [color,    setColor]    = useState(category?.color    ?? '#64748b')
   const [isIncome, setIsIncome] = useState(category?.is_income === 1)
+  const [groupId,  setGroupId]  = useState(category?.group_id ?? '')
+
+  useEffect(() => {
+    if (!groupId) return
+    const group = groups.find(g => g.id === Number(groupId))
+    if (group?.color) setColor(group.color)
+  }, [groupId])
 
   function handleSave() {
     if (!name.trim()) return
-    const data = { name: name.trim(), icon: icon.trim() || '📦', color, is_income: isIncome ? 1 : 0 }
+    const data = { name: name.trim(), icon: icon.trim() || '📦', color, is_income: isIncome ? 1 : 0, group_id: groupId ? Number(groupId) : null }
     if (isNew) createCategory(data)
     else       updateCategory(category.id, data)
     onSave()
@@ -98,6 +105,16 @@ export default function CategoryModal({ category, onSave, onClose }) {
             title="Custom color" />
         </div>
       </div>
+
+      {groups.length > 0 && (
+        <div>
+          <label className="label">Group <span className="text-slate-400 dark:text-slate-600 font-normal">(optional)</span></label>
+          <select className="input" value={groupId} onChange={e => setGroupId(e.target.value)}>
+            <option value="">No group</option>
+            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+        </div>
+      )}
 
       <div>
         <label className="label">Type</label>

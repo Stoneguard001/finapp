@@ -66,12 +66,32 @@ export default function Budgets() {
         category_name:  b.category_name  ?? 'Uncategorized',
         category_icon:  b.category_icon  ?? '❓',
         category_color: b.category_color ?? '#475569',
+        group_id:       b.group_id       ?? null,
+        group_name:     b.group_name     ?? null,
         items: []
       }
       map[key].items.push(b)
     }
-    return Object.values(map).sort((a, b) => a.category_name.localeCompare(b.category_name))
+    return Object.values(map)
   }, [budgets])
+
+  // group categories by category group
+  const sections = useMemo(() => {
+    const map = {}
+    for (const g of groups) {
+      const key = g.group_id ?? '__ungrouped__'
+      if (!map[key]) map[key] = { group_id: g.group_id, group_name: g.group_name, categoryGroups: [] }
+      map[key].categoryGroups.push(g)
+    }
+    const hasNamed = Object.keys(map).some(k => k !== '__ungrouped__')
+    return Object.values(map)
+      .sort((a, b) => {
+        if (!a.group_name && b.group_name) return 1
+        if (a.group_name && !b.group_name) return -1
+        return (a.group_name ?? '').localeCompare(b.group_name ?? '')
+      })
+      .map(s => ({ ...s, showHeader: hasNamed }))
+  }, [groups])
 
   const totalMonthly = budgets.reduce((s, b) => s + toMonthly(b), 0)
   const totalAnnual  = budgets.reduce((s, b) => s + toAnnual(b),  0)
@@ -117,9 +137,17 @@ export default function Budgets() {
         )}
       </div>
 
-      {/* Category groups */}
-      <div className="space-y-4">
-        {groups.map(group => {
+      {/* Budget sections */}
+      <div className="space-y-6">
+        {sections.map(section => (
+          <div key={section.group_id ?? 'ungrouped'}>
+            {section.showHeader && (
+              <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500 px-1 mb-3">
+                {section.group_name ?? 'Ungrouped'}
+              </h2>
+            )}
+            <div className="space-y-4">
+        {section.categoryGroups.map(group => {
           const spent       = view === 'monthly'
             ? (spending.monthly[group.category_id] ?? 0) + (spending.linkedMonthly[group.category_id] ?? 0)
             : (spending.annual[group.category_id]  ?? 0)
@@ -249,6 +277,9 @@ export default function Budgets() {
             </div>
           )
         })}
+            </div>
+          </div>
+        ))}
       </div>
 
       {budgets.length === 0 && (

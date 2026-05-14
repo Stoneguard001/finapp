@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Pencil, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
@@ -29,6 +29,7 @@ export default function Transactions() {
   const [search, setSearch]               = useState('')
   const [filterAccount, setFilterAccount] = useState('')
   const [filterCategory, setFilterCategory] = useState(() => searchParams.get('category') ?? '')
+  const [filterGroup, setFilterGroup]     = useState('')
   const [filterTag, setFilterTag]         = useState(null)
   const [editing, setEditing]             = useState(null)
   const [refresh, setRefresh]             = useState(0)
@@ -69,8 +70,22 @@ export default function Transactions() {
   const { data: accounts = [] }   = useQuery(() => getAccounts())
   const { data: tags = [] }       = useQuery(() => getTags(), [refresh])
 
+  const availableGroups = useMemo(() => {
+    const seen = new Set()
+    return categories
+      .filter(c => c.group_id && !seen.has(c.group_id) && seen.add(c.group_id))
+      .map(c => ({ id: c.group_id, name: c.group_name }))
+      .sort((a, b) => a.name.localeCompare(b.name))
+  }, [categories])
+
+  const groupCatIds = useMemo(() => {
+    if (!filterGroup) return null
+    return new Set(categories.filter(c => c.group_id === Number(filterGroup)).map(c => c.id))
+  }, [filterGroup, categories])
+
   const filtered = transactions.filter(t => {
     if (filterAccount  && t.account_id  !== Number(filterAccount))  return false
+    if (filterGroup    && (!t.category_id || !groupCatIds.has(t.category_id))) return false
     if (filterCategory && t.category_id !== Number(filterCategory)) return false
     if (filterTag      && !t.tags.some(tag => tag.id === filterTag)) return false
     if (search) {
@@ -86,13 +101,22 @@ export default function Transactions() {
     return true
   })
 
-  const activeFilters = [filterAccount, filterCategory, filterTag].filter(Boolean).length
+  const activeFilters = [filterAccount, filterGroup, filterCategory, filterTag].filter(Boolean).length
 
   function clearFilters() {
     setFilterAccount('')
+    setFilterGroup('')
     setFilterCategory('')
     setFilterTag(null)
     setSearch('')
+  }
+
+  function handleGroupChange(gid) {
+    setFilterGroup(gid)
+    if (gid && filterCategory) {
+      const cat = categories.find(c => c.id === Number(filterCategory))
+      if (cat && cat.group_id !== Number(gid)) setFilterCategory('')
+    }
   }
 
   async function handleDelete(id) {
@@ -171,13 +195,26 @@ export default function Transactions() {
           {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
         </select>
 
+        {availableGroups.length > 0 && (
+          <select
+            className="input w-40"
+            value={filterGroup}
+            onChange={e => handleGroupChange(e.target.value)}
+          >
+            <option value="">All groups</option>
+            {availableGroups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
+          </select>
+        )}
+
         <select
           className="input w-44"
           value={filterCategory}
           onChange={e => setFilterCategory(e.target.value)}
         >
           <option value="">All categories</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+          {categories
+            .filter(c => !filterGroup || c.group_id === Number(filterGroup))
+            .map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
         </select>
 
         {(activeFilters > 0 || search) && (
