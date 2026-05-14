@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Modal from '@/components/Modal'
 import { createTransaction, updateTransaction } from '@/db/queries/transactions'
 import { setTransactionTags } from '@/db/queries/tags'
 import { getBudgets } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
 import TagPicker from '@/components/TagPicker'
+import SearchableSelect from '@/components/SearchableSelect'
 
 export default function TransactionModal({ transaction, categories, accounts, tags, onClose, onSave }) {
   const isNew = !transaction.id
@@ -37,6 +38,16 @@ export default function TransactionModal({ transaction, categories, accounts, ta
     }))
   }
 
+  const accountOptions  = useMemo(() => [
+    { value: '', label: 'Select account…' },
+    ...accounts.map(a => ({ value: a.id, label: a.name }))
+  ], [accounts])
+
+  const categoryOptions = useMemo(() => [
+    { value: '', label: 'Uncategorized' },
+    ...categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))
+  ], [categories])
+
   const categoryBudgets = form.category_id
     ? allBudgets.filter(b => b.category_id === Number(form.category_id))
     : []
@@ -61,10 +72,12 @@ export default function TransactionModal({ transaction, categories, accounts, ta
     <Modal title={isNew ? 'Add Transaction' : 'Edit Transaction'} onClose={onClose}>
       <div>
         <label className="label">Account *</label>
-        <select className="input" value={form.account_id} onChange={e => set('account_id', e.target.value)}>
-          <option value="">Select account…</option>
-          {accounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}
-        </select>
+        <SearchableSelect
+          value={form.account_id}
+          onChange={v => set('account_id', v)}
+          options={accountOptions}
+          placeholder="Select account…"
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
@@ -83,10 +96,12 @@ export default function TransactionModal({ transaction, categories, accounts, ta
       </div>
       <div>
         <label className="label">Category</label>
-        <select className="input" value={form.category_id} onChange={e => handleCategoryChange(e.target.value)}>
-          <option value="">Uncategorized</option>
-          {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
-        </select>
+        <SearchableSelect
+          value={form.category_id}
+          onChange={v => handleCategoryChange(v)}
+          options={categoryOptions}
+          placeholder="Uncategorized"
+        />
       </div>
       {categoryBudgets.length > 0 && (
         <div>

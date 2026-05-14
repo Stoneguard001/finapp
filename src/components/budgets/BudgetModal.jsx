@@ -1,8 +1,9 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import Modal from '@/components/Modal'
-import { createBudget, updateBudget } from '@/db/queries/budgets'
+import { createBudget, updateBudget, PERIOD_LABELS } from '@/db/queries/budgets'
 import { getCategories } from '@/db/queries/categories'
 import { useQuery } from '@/hooks/useQuery'
+import SearchableSelect from '@/components/SearchableSelect'
 
 export default function BudgetModal({ budget, onClose, onSave }) {
   const isNew = !budget.id
@@ -12,10 +13,15 @@ export default function BudgetModal({ budget, onClose, onSave }) {
     name:        budget.name        ?? '',
     category_id: budget.category_id ?? '',
     amount:      budget.amount      ?? '',
-    period:      budget.period === 'annual' ? 'annual' : 'monthly',
+    period:      budget.period ?? 'monthly',
     notes:       budget.notes       ?? ''
   })
   const [error, setError] = useState('')
+
+  const categoryOptions = useMemo(() => [
+    { value: '', label: '— select a category —' },
+    ...categories.map(c => ({ value: c.id, label: `${c.icon} ${c.name}` }))
+  ], [categories])
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
 
@@ -55,12 +61,12 @@ export default function BudgetModal({ budget, onClose, onSave }) {
 
       <div>
         <label className="label">Category *</label>
-        <select className="input" value={form.category_id} onChange={e => set('category_id', e.target.value)}>
-          <option value="">— select a category —</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-          ))}
-        </select>
+        <SearchableSelect
+          value={form.category_id}
+          onChange={v => set('category_id', v)}
+          options={categoryOptions}
+          placeholder="— select a category —"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -79,8 +85,9 @@ export default function BudgetModal({ budget, onClose, onSave }) {
         <div>
           <label className="label">Period *</label>
           <select className="input" value={form.period} onChange={e => set('period', e.target.value)}>
-            <option value="monthly">Monthly</option>
-            <option value="annual">Annual</option>
+            {Object.entries(PERIOD_LABELS).map(([val, label]) => (
+              <option key={val} value={val}>{label}</option>
+            ))}
           </select>
         </div>
       </div>

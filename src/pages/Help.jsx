@@ -101,13 +101,24 @@ export default function Help() {
       </Section>
 
       <Section icon={PiggyBank} title="Budgets">
-        <p>Budgets let you set spending limits per category. Go to <strong className="text-slate-800 dark:text-slate-200">Budgets</strong> and click <strong className="text-slate-800 dark:text-slate-200">Add Budget Item</strong>.</p>
+        <p>Budgets let you set spending targets per category — for both expenses and income. Go to <strong className="text-slate-800 dark:text-slate-200">Budgets</strong> and click <strong className="text-slate-800 dark:text-slate-200">Add Budget Item</strong>.</p>
         <ul className="list-disc list-inside space-y-1 ml-1">
           <li>Choose a category and enter the budgeted amount and period (weekly, monthly, quarterly, semi-annual, or annual)</li>
           <li>Toggle between <strong className="text-slate-800 dark:text-slate-200">Monthly</strong> and <strong className="text-slate-800 dark:text-slate-200">Annual</strong> view using the buttons at the top</li>
-          <li>Progress bars turn yellow at 80% and red when over budget</li>
-          <li>Click the arrow on any budget item to expand it and see all linked transactions</li>
+          <li>Expense progress bars turn yellow at 80% and red when over budget</li>
+          <li>Click a category name to collapse or expand its detail — click a group header to collapse the whole group</li>
+          <li>Click the arrow on any budget line item to expand it and see all matched transactions</li>
         </ul>
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Income Budgets</p>
+          <p>If any of your categories are marked as <strong className="text-slate-800 dark:text-slate-200">Income</strong>, you can create budget items for them to track expected earnings alongside expenses.</p>
+          <ul className="list-disc list-inside space-y-1 ml-1">
+            <li>When income budget items exist, the page splits into <strong className="text-slate-800 dark:text-slate-200">Income</strong> and <strong className="text-slate-800 dark:text-slate-200">Expenses</strong> sections</li>
+            <li>A summary bar at the top shows <strong className="text-slate-800 dark:text-slate-200">Expected Income</strong>, <strong className="text-slate-800 dark:text-slate-200">Budgeted Expenses</strong>, and <strong className="text-slate-800 dark:text-slate-200">Projected Net</strong> — green when you expect to come out ahead, red when expenses exceed income</li>
+            <li>Income progress bars track how much has been received — receiving more than expected is shown positively (no red warning)</li>
+          </ul>
+          <Tip>Mark a category as Income when creating or editing it on the Categories page, then add a budget item for it (e.g. Salary → $5,000/month).</Tip>
+        </div>
       </Section>
 
       <Section icon={Link} title="Linking Transactions to Budget Items">

@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import Modal from '@/components/Modal'
 import { createCategory, updateCategory } from '@/db/queries/categories'
+import SearchableSelect from '@/components/SearchableSelect'
 
 const PRESET_COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#eab308',
@@ -41,6 +42,11 @@ export default function CategoryModal({ category, groups = [], onSave, onClose }
   const [color,    setColor]    = useState(category?.color    ?? '#64748b')
   const [isIncome, setIsIncome] = useState(category?.is_income === 1)
   const [groupId,  setGroupId]  = useState(category?.group_id ?? '')
+
+  const groupOptions = useMemo(() => [
+    { value: '', label: 'No group' },
+    ...groups.map(g => ({ value: g.id, label: g.name }))
+  ], [groups])
 
   useEffect(() => {
     if (!groupId) return
@@ -109,10 +115,12 @@ export default function CategoryModal({ category, groups = [], onSave, onClose }
       {groups.length > 0 && (
         <div>
           <label className="label">Group <span className="text-slate-400 dark:text-slate-600 font-normal">(optional)</span></label>
-          <select className="input" value={groupId} onChange={e => setGroupId(e.target.value)}>
-            <option value="">No group</option>
-            {groups.map(g => <option key={g.id} value={g.id}>{g.name}</option>)}
-          </select>
+          <SearchableSelect
+            value={groupId}
+            onChange={v => setGroupId(v)}
+            options={groupOptions}
+            placeholder="No group"
+          />
         </div>
       )}
 

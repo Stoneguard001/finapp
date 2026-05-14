@@ -22,7 +22,7 @@ export const PERIOD_LABELS = {
 export const getBudgets = ({ includeArchived = false } = {}) =>
   query(`
     SELECT b.*, c.name as category_name, c.icon as category_icon, c.color as category_color,
-           g.id as group_id, g.name as group_name, g.sort_order as group_sort_order
+           c.is_income, g.id as group_id, g.name as group_name, g.sort_order as group_sort_order
     FROM budgets b
     LEFT JOIN categories c ON c.id = b.category_id
     LEFT JOIN category_groups g ON g.id = c.group_id
