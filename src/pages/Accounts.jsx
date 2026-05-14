@@ -54,8 +54,8 @@ export default function Accounts() {
                 </div>
               </div>
               <div className="flex gap-1">
-                <button onClick={() => setEditing(a)}       className="btn-ghost p-1"><Pencil  size={13} /></button>
-                <button onClick={() => handleArchive(a.id)} className="btn-ghost p-1 text-slate-400 dark:text-slate-500"><Archive size={13} /></button>
+                <button onClick={() => setEditing(a)}       className="btn-ghost p-1" title="Edit account"><Pencil  size={13} /></button>
+                <button onClick={() => handleArchive(a.id)} className="btn-ghost p-1 text-slate-400 dark:text-slate-500" title="Archive account"><Archive size={13} /></button>
               </div>
             </div>
             <div>

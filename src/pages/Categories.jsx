@@ -49,6 +49,7 @@ export default function Categories() {
               <span className="text-sm text-slate-700 dark:text-slate-300 truncate flex-1">{c.name}</span>
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }} />
               <button
+                title="Edit category"
                 className="opacity-0 group-hover:opacity-100 transition-opacity btn-ghost p-0.5 ml-1"
                 onClick={() => setEditing(c)}
               >
@@ -95,6 +96,7 @@ export default function Categories() {
                 <td className="py-2 text-slate-500 dark:text-slate-400 text-xs">{r.category_name}</td>
                 <td className="py-2">
                   <button onClick={() => removeRule(r.id)}
+                    title="Delete rule"
                     className="btn-ghost p-1 text-red-500 hover:text-red-400">
                     <Trash2 size={13} />
                   </button>

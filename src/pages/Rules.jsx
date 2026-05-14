@@ -103,6 +103,7 @@ export default function Rules() {
         {search && (
           <button
             onClick={() => setSearch('')}
+            title="Clear search"
             className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
           >
             <X size={14} />
@@ -158,6 +159,7 @@ export default function Rules() {
                 <td className="px-4 py-3 text-slate-500">{r.priority}</td>
                 <td className="px-4 py-3">
                   <button onClick={() => handleDelete(r.id)}
+                    title="Delete rule"
                     className="btn-ghost p-1 text-red-500 hover:text-red-400">
                     <Trash2 size={13} />
                   </button>

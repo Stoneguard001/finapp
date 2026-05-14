@@ -8,6 +8,12 @@ const PRESET_COLORS = [
   '#3b82f6', '#8b5cf6', '#a855f7', '#ec4899',
   '#64748b', '#94a3b8',
 ]
+const COLOR_NAMES = {
+  '#ef4444': 'Red',   '#f97316': 'Orange', '#f59e0b': 'Amber',  '#eab308': 'Yellow',
+  '#84cc16': 'Lime',  '#22c55e': 'Green',  '#14b8a6': 'Teal',   '#06b6d4': 'Cyan',
+  '#3b82f6': 'Blue',  '#8b5cf6': 'Violet', '#a855f7': 'Purple', '#ec4899': 'Pink',
+  '#64748b': 'Slate', '#94a3b8': 'Light Slate',
+}
 
 const EMOJI_GROUPS = [
   { label: 'Money & Finance', emojis: ['💰', '💵', '💴', '💶', '💳', '🪙', '💹', '📈', '📉', '🏦', '🤑', '💎', '🧾', '📊'] },
@@ -81,6 +87,7 @@ export default function CategoryModal({ category, onSave, onClose }) {
         <div className="flex flex-wrap gap-2 mt-1">
           {PRESET_COLORS.map(c => (
             <button key={c} type="button"
+              title={COLOR_NAMES[c]}
               className={`w-6 h-6 rounded-full border-2 transition-colors ${color === c ? 'border-slate-900 dark:border-white' : 'border-transparent'}`}
               style={{ background: c }}
               onClick={() => setColor(c)}

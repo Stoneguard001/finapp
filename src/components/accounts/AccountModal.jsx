@@ -3,6 +3,12 @@ import Modal from '@/components/Modal'
 import { createAccount, updateAccount } from '@/db/queries/accounts'
 
 const TYPES = ['checking', 'savings', 'credit', 'investment', 'loan']
+const COLOR_NAMES = {
+  '#22c55e': 'Green',      '#16a34a': 'Dark Green', '#14b8a6': 'Teal',        '#06b6d4': 'Cyan',
+  '#3b82f6': 'Blue',       '#6366f1': 'Indigo',     '#a855f7': 'Purple',      '#ec4899': 'Pink',
+  '#ef4444': 'Red',        '#f97316': 'Orange',     '#f59e0b': 'Amber',       '#84cc16': 'Lime',
+  '#94a3b8': 'Light Slate','#64748b': 'Slate',
+}
 const COLORS = [
   '#22c55e', '#16a34a', '#14b8a6', '#06b6d4',
   '#3b82f6', '#6366f1', '#a855f7', '#ec4899',
@@ -59,6 +65,7 @@ export default function AccountModal({ account, onClose, onSave }) {
               key={c}
               type="button"
               onClick={() => set('color', c)}
+              title={COLOR_NAMES[c]}
               className={`w-7 h-7 rounded-full transition-transform ${form.color === c ? 'ring-2 ring-white scale-110' : 'hover:scale-105'}`}
               style={{ background: c }}
             />

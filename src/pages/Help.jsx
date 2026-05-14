@@ -77,6 +77,17 @@ export default function Help() {
           <li>Toggle <strong className="text-slate-800 dark:text-slate-200">Transfer</strong> on a transaction to mark it as a transfer between your own accounts — transfers are excluded from income/expense totals and budget spending</li>
         </ul>
         <Tip>Assign categories to transactions so the Dashboard pie chart and Budget progress bars stay accurate.</Tip>
+
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Tags</p>
+          <p>Tags are free-form labels you can add to transactions for tracking that doesn't fit into categories — for example "Business", "Reimbursable", or "Vacation".</p>
+          <ul className="list-disc list-inside space-y-1 ml-1">
+            <li>To create a tag, open any transaction, click the tag field, type a name, choose a color, and click <strong className="text-slate-800 dark:text-slate-200">Add tag</strong></li>
+            <li>A transaction can have multiple tags</li>
+            <li>Filter the transaction list by tag using the tag row that appears below the search bar</li>
+            <li>Tags can also be attached to Rules so they are applied automatically whenever a matching transaction is imported</li>
+          </ul>
+        </div>
       </Section>
 
       <Section icon={Upload} title="Importing Transactions">

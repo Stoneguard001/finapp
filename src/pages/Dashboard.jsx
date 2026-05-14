@@ -80,7 +80,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Month navigation */}
       <div className="flex items-center gap-2">
-        <button onClick={() => setSelectedMonth(m => subMonths(m, 1))} className="btn-ghost p-1">
+        <button onClick={() => setSelectedMonth(m => subMonths(m, 1))} className="btn-ghost p-1" title="Previous month">
           <ChevronLeft size={18} />
         </button>
         <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
@@ -90,6 +90,7 @@ export default function Dashboard() {
           onClick={() => setSelectedMonth(m => addMonths(m, 1))}
           className="btn-ghost p-1"
           disabled={isCurrentMonth}
+          title="Next month"
         >
           <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-300 dark:text-slate-700' : ''} />
         </button>

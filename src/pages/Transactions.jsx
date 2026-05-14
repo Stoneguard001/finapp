@@ -119,7 +119,7 @@ export default function Transactions() {
 
           {viewMode === 'month' ? (
             <div className="flex items-center gap-1">
-              <button onClick={() => changeMonth(m => subMonths(m, 1))} className="btn-ghost p-1">
+              <button onClick={() => changeMonth(m => subMonths(m, 1))} className="btn-ghost p-1" title="Previous month">
                 <ChevronLeft size={18} />
               </button>
               <span className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
@@ -129,6 +129,7 @@ export default function Transactions() {
                 onClick={() => changeMonth(m => addMonths(m, 1))}
                 className="btn-ghost p-1"
                 disabled={isCurrentMonth}
+                title="Next month"
               >
                 <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-300 dark:text-slate-700' : ''} />
               </button>
@@ -153,6 +154,7 @@ export default function Transactions() {
           {search && (
             <button
               onClick={() => setSearch('')}
+              title="Clear search"
               className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             >
               <X size={14} />
@@ -255,8 +257,8 @@ export default function Transactions() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">
-                    <button onClick={() => setEditing(tx)}      className="btn-ghost p-1"><Pencil size={13} /></button>
-                    <button onClick={() => handleDelete(tx.id)} className="btn-ghost p-1 text-red-500 hover:text-red-400"><Trash2 size={13} /></button>
+                    <button onClick={() => setEditing(tx)}      className="btn-ghost p-1" title="Edit transaction"><Pencil size={13} /></button>
+                    <button onClick={() => handleDelete(tx.id)} className="btn-ghost p-1 text-red-500 hover:text-red-400" title="Delete transaction"><Trash2 size={13} /></button>
                   </div>
                 </td>
               </tr>

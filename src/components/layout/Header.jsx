@@ -1,10 +1,17 @@
 import { Save, X, Database, Zap, ZapOff, Sun, Moon } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useDbStore } from '@/store/dbStore'
 import { useTheme } from '@/context/ThemeContext'
 
 export default function Header() {
   const { dbName, fileHandle, autoSave, ready, save, saveAs, toggleAutoSave, close } = useDbStore()
   const { dark, toggle } = useTheme()
+  const navigate = useNavigate()
+
+  function handleClose() {
+    close()
+    navigate('/', { replace: true })
+  }
 
   const disabledCls = 'opacity-30 pointer-events-none'
 
@@ -39,7 +46,7 @@ export default function Header() {
         </button>
         <button onClick={save}   className={`btn-ghost text-xs ${!ready ? disabledCls : ''}`}><Save size={14} /> Save</button>
         <button onClick={saveAs} className={`btn-ghost text-xs ${!ready ? disabledCls : ''}`}><Save size={14} /> Save As</button>
-        <button onClick={close}  className={`btn-ghost text-xs ${!ready ? disabledCls : 'text-red-400 hover:text-red-300'}`}>
+        <button onClick={handleClose} className={`btn-ghost text-xs ${!ready ? disabledCls : 'text-red-400 hover:text-red-300'}`}>
           <X size={14} /> Close
         </button>
       </div>

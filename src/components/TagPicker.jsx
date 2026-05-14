@@ -6,6 +6,10 @@ const PRESET_COLORS = [
   '#ef4444', '#f97316', '#f59e0b', '#22c55e',
   '#3b82f6', '#8b5cf6', '#ec4899', '#64748b'
 ]
+const COLOR_NAMES = {
+  '#ef4444': 'Red', '#f97316': 'Orange', '#f59e0b': 'Amber', '#22c55e': 'Green',
+  '#3b82f6': 'Blue', '#8b5cf6': 'Violet', '#ec4899': 'Pink', '#64748b': 'Slate',
+}
 
 export default function TagPicker({ tags, selected, onChange }) {
   const [allTags, setAllTags] = useState(tags)
@@ -66,6 +70,7 @@ export default function TagPicker({ tags, selected, onChange }) {
             {t.name}
             <button
               type="button"
+              title={`Remove ${t.name}`}
               className="hover:opacity-70 leading-none"
               onClick={e => { e.stopPropagation(); toggle(t.id) }}
             >
@@ -110,6 +115,7 @@ export default function TagPicker({ tags, selected, onChange }) {
                     <button
                       key={c}
                       type="button"
+                      title={COLOR_NAMES[c]}
                       className={`w-4 h-4 rounded-full border-2 transition-colors ${newColor === c ? 'border-slate-900 dark:border-white' : 'border-transparent'}`}
                       style={{ background: c }}
                       onClick={() => setNewColor(c)}
