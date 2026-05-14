@@ -3,8 +3,10 @@ import { useDbStore } from '@/store/dbStore'
 import { useTheme } from '@/context/ThemeContext'
 
 export default function Header() {
-  const { dbName, fileHandle, autoSave, save, saveAs, toggleAutoSave, close } = useDbStore()
+  const { dbName, fileHandle, autoSave, ready, save, saveAs, toggleAutoSave, close } = useDbStore()
   const { dark, toggle } = useTheme()
+
+  const disabledCls = 'opacity-30 pointer-events-none'
 
   return (
     <header className="h-12 flex items-center justify-between px-6 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex-shrink-0">
@@ -30,14 +32,14 @@ export default function Header() {
         <button
           onClick={toggleAutoSave}
           title={autoSave ? 'Auto-save on — click to disable' : 'Auto-save off — click to enable'}
-          className={`btn-ghost text-xs flex items-center gap-1.5 ${autoSave ? 'text-brand-400' : 'text-slate-400 dark:text-slate-500'}`}
+          className={`btn-ghost text-xs flex items-center gap-1.5 ${!ready ? disabledCls : autoSave ? 'text-brand-400' : 'text-slate-400 dark:text-slate-500'}`}
         >
           {autoSave ? <Zap size={13} /> : <ZapOff size={13} />}
           Auto
         </button>
-        <button onClick={save}   className="btn-ghost text-xs"><Save size={14} /> Save</button>
-        <button onClick={saveAs} className="btn-ghost text-xs"><Save size={14} /> Save As</button>
-        <button onClick={close}  className="btn-ghost text-xs text-red-400 hover:text-red-300">
+        <button onClick={save}   className={`btn-ghost text-xs ${!ready ? disabledCls : ''}`}><Save size={14} /> Save</button>
+        <button onClick={saveAs} className={`btn-ghost text-xs ${!ready ? disabledCls : ''}`}><Save size={14} /> Save As</button>
+        <button onClick={close}  className={`btn-ghost text-xs ${!ready ? disabledCls : 'text-red-400 hover:text-red-300'}`}>
           <X size={14} /> Close
         </button>
       </div>

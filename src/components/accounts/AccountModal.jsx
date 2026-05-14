@@ -3,7 +3,12 @@ import Modal from '@/components/Modal'
 import { createAccount, updateAccount } from '@/db/queries/accounts'
 
 const TYPES = ['checking', 'savings', 'credit', 'investment', 'loan']
-const COLORS = ['#22c55e', '#3b82f6', '#f59e0b', '#ef4444', '#a855f7', '#ec4899', '#14b8a6']
+const COLORS = [
+  '#22c55e', '#16a34a', '#14b8a6', '#06b6d4',
+  '#3b82f6', '#6366f1', '#a855f7', '#ec4899',
+  '#ef4444', '#f97316', '#f59e0b', '#84cc16',
+  '#94a3b8', '#64748b',
+]
 
 export default function AccountModal({ account, onClose, onSave }) {
   const isNew = !account.id

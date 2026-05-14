@@ -1,5 +1,6 @@
 import { useRef } from 'react'
-import { FolderOpen, FilePlus, Database } from 'lucide-react'
+import { FolderOpen, FilePlus, Database, HelpCircle } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import { useDbStore } from '@/store/dbStore'
 
 export default function Welcome() {
@@ -89,9 +90,15 @@ export default function Welcome() {
           </ol>
         </div>
 
-        <p className="text-center text-xs text-slate-400 dark:text-slate-600">
-          100% local — no account, no server, no tracking.
-        </p>
+        <div className="flex items-center justify-between">
+          <p className="text-xs text-slate-400 dark:text-slate-600">
+            100% local — no account, no server, no tracking.
+          </p>
+          <Link to="/help" className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
+            <HelpCircle size={13} />
+            Help
+          </Link>
+        </div>
       </div>
 
       <input

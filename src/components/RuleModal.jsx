@@ -39,7 +39,15 @@ export default function RuleModal({ categories, tags = [], initialPattern = '', 
         <p className="text-xs text-slate-400 dark:text-slate-600 mt-1">Trim to just the keyword — e.g. "HONDA" not the full description</p>
       </div>
       <div>
-        <label className="label">Match type</label>
+        <label className="label">
+          Match type
+          {patternType === 'regex' && (
+            <a href="https://regex101.com" target="_blank" rel="noreferrer"
+              className="ml-2 text-xs font-normal text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200">
+              regex reference
+            </a>
+          )}
+        </label>
         <select className="input" value={patternType} onChange={e => setPatternType(e.target.value)}>
           <option value="contains">Contains</option>
           <option value="starts_with">Starts with</option>
