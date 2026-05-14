@@ -160,7 +160,7 @@ export default function Rules() {
                 <td className="px-4 py-3">
                   <button onClick={() => handleDelete(r.id)}
                     title="Delete rule"
-                    className="btn-ghost p-1 text-red-500 hover:text-red-400">
+                    className="btn-ghost p-1 text-slate-400 dark:text-slate-500 hover:text-red-500">
                     <Trash2 size={13} />
                   </button>
                 </td>

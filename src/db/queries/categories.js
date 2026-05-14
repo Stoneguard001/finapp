@@ -52,6 +52,13 @@ export const setRuleTags = (ruleId, tagIds) => {
 export const deleteRule = (id) =>
   run('DELETE FROM category_rules WHERE id=?', [id])
 
+export const deleteCategory = (id) => {
+  run('UPDATE transactions SET category_id=NULL WHERE category_id=?', [id])
+  run('DELETE FROM category_rules WHERE category_id=?', [id])
+  run('DELETE FROM budgets WHERE category_id=?', [id])
+  run('DELETE FROM categories WHERE id=?', [id])
+}
+
 // Apply rules to a description — returns { category_id, tag_ids } or null
 export function applyRules(description, rules) {
   const upper = description.toUpperCase()

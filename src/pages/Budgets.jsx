@@ -201,8 +201,8 @@ export default function Budgets() {
                             {fmt(displayAmt)}
                             <span className="text-xs font-normal text-slate-400 ml-0.5">/{view === 'monthly' ? 'mo' : 'yr'}</span>
                           </span>
-                          <button onClick={() => setEditing(item)} className="btn-ghost p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200" title="Edit budget item"><Pencil size={13} /></button>
-                          <button onClick={() => handleDelete(item.id)} className="btn-ghost p-1 text-slate-400 hover:text-red-500" title="Delete budget item"><Trash2 size={13} /></button>
+                          <button onClick={() => setEditing(item)} className="btn-ghost p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit budget item"><Pencil size={13} /></button>
+                          <button onClick={() => handleDelete(item.id)} className="btn-ghost p-1 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete budget item"><Trash2 size={13} /></button>
                         </div>
                       </div>
 

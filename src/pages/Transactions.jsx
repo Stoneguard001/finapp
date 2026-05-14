@@ -257,8 +257,8 @@ export default function Transactions() {
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">
-                    <button onClick={() => setEditing(tx)}      className="btn-ghost p-1" title="Edit transaction"><Pencil size={13} /></button>
-                    <button onClick={() => handleDelete(tx.id)} className="btn-ghost p-1 text-red-500 hover:text-red-400" title="Delete transaction"><Trash2 size={13} /></button>
+                    <button onClick={() => setEditing(tx)}      className="btn-ghost p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit transaction"><Pencil size={13} /></button>
+                    <button onClick={() => handleDelete(tx.id)} className="btn-ghost p-1 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete transaction"><Trash2 size={13} /></button>
                   </div>
                 </td>
               </tr>

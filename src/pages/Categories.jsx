@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { Plus, Trash2, Pencil } from 'lucide-react'
-import { getCategories, getRules, createRule, deleteRule } from '@/db/queries/categories'
+import { getCategories, getRules, createRule, deleteRule, deleteCategory } from '@/db/queries/categories'
 import { useQuery } from '@/hooks/useQuery'
 import CategoryModal from '@/components/CategoryModal'
 
@@ -28,6 +28,12 @@ export default function Categories() {
     bump()
   }
 
+  function handleDeleteCategory(c) {
+    if (!confirm(`Delete "${c.name}"? Associated transactions will be uncategorized and any budget items for this category will also be removed.`)) return
+    deleteCategory(c.id)
+    bump()
+  }
+
   return (
     <div className="space-y-6 max-w-3xl">
       <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Categories &amp; Rules</h1>
@@ -44,16 +50,23 @@ export default function Categories() {
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {categories.map(c => (
             <div key={c.id}
-              className="group flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100/50 dark:bg-slate-800/50">
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-100/50 dark:bg-slate-800/50">
               <span>{c.icon}</span>
               <span className="text-sm text-slate-700 dark:text-slate-300 truncate flex-1">{c.name}</span>
               <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: c.color }} />
               <button
                 title="Edit category"
-                className="opacity-0 group-hover:opacity-100 transition-opacity btn-ghost p-0.5 ml-1"
+                className="btn-ghost p-0.5 ml-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
                 onClick={() => setEditing(c)}
               >
-                <Pencil size={11} className="text-slate-400 dark:text-slate-500" />
+                <Pencil size={11} />
+              </button>
+              <button
+                title="Delete category"
+                className="btn-ghost p-0.5 text-slate-400 dark:text-slate-500 hover:text-red-500"
+                onClick={() => handleDeleteCategory(c)}
+              >
+                <Trash2 size={11} />
               </button>
             </div>
           ))}
@@ -97,7 +110,7 @@ export default function Categories() {
                 <td className="py-2">
                   <button onClick={() => removeRule(r.id)}
                     title="Delete rule"
-                    className="btn-ghost p-1 text-red-500 hover:text-red-400">
+                    className="btn-ghost p-1 text-slate-400 dark:text-slate-500 hover:text-red-500">
                     <Trash2 size={13} />
                   </button>
                 </td>
