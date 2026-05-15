@@ -11,6 +11,7 @@ import ImportPage from '@/pages/ImportPage'
 import Categories from '@/pages/Categories'
 import Rules from '@/pages/Rules'
 import Help from '@/pages/Help'
+import About from '@/pages/About'
 
 export default function App() {
   const ready = useDbStore(s => s.ready)
@@ -22,11 +23,12 @@ export default function App() {
   }, [ready])
 
   if (!ready) {
-    if (location.pathname === '/help') {
+    if (location.pathname === '/help' || location.pathname === '/about') {
       return (
         <Layout>
           <Routes>
-            <Route path="/help" element={<Help />} />
+            <Route path="/help"  element={<Help />} />
+            <Route path="/about" element={<About />} />
           </Routes>
         </Layout>
       )
@@ -46,6 +48,7 @@ export default function App() {
         <Route path="/categories"   element={<Categories />} />
         <Route path="/rules"        element={<Rules />} />
         <Route path="/help"         element={<Help />} />
+        <Route path="/about"        element={<About />} />
       </Routes>
     </Layout>
   )

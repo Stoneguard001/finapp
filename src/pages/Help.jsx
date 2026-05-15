@@ -1,4 +1,5 @@
-import { HelpCircle, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, Link, ChevronDown, ChevronRight } from 'lucide-react'
+import { HelpCircle, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, Link, ChevronDown, ChevronRight, Info } from 'lucide-react'
+import { Link as RouterLink } from 'react-router-dom'
 import { useState } from 'react'
 
 function Section({ icon: Icon, title, children }) {
@@ -157,6 +158,16 @@ export default function Help() {
           <li>Drag rows to reorder priority, or edit the priority number directly</li>
         </ul>
       </Section>
+
+      <div className="mt-2 flex justify-center">
+        <RouterLink
+          to="/about"
+          className="inline-flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-brand-500 dark:hover:text-brand-400 transition-colors"
+        >
+          <Info size={13} />
+          About FinApp &amp; source code
+        </RouterLink>
+      </div>
     </div>
   )
 }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, PiggyBank,
-  Upload, Tag, ListFilter, HelpCircle, ChevronLeft, ChevronRight
+  Upload, Tag, ListFilter, HelpCircle, Info, ChevronLeft, ChevronRight
 } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 
@@ -15,6 +15,7 @@ const NAV = [
   { to: '/categories',   icon: Tag,             label: 'Categories' },
   { to: '/rules',        icon: ListFilter,      label: 'Rules' },
   { to: '/help',         icon: HelpCircle,      label: 'Help' },
+  { to: '/about',        icon: Info,            label: 'About' },
 ]
 
 export default function Sidebar() {

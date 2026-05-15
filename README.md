@@ -1,5 +1,7 @@
 # FinApp
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 A fully local personal finance app. No account, no server, no tracking — your data lives in a SQLite file on your own machine.
 
 ## How it works
@@ -65,3 +67,13 @@ settings          — key/value store for app preferences
 ## Saving your data
 
 Use the **Save** / **Save As** buttons in the header to persist changes. The app saves to a `.sqlite` file named `finapp-YYYY-MM-DD.sqlite`. If your browser supports the File System Access API (Chrome / Edge), it can write back to the same file you opened so you never need to think about it. Firefox falls back to a download prompt.
+
+## Contributing
+
+Bug reports and feature requests are welcome — please [open an issue](https://github.com/Stoneguard001/finapp/issues).
+
+Pull requests are also welcome. For larger changes, open an issue first to discuss what you'd like to change.
+
+## License
+
+[MIT](LICENSE)
