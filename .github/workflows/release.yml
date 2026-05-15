@@ -1,0 +1,47 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Package dist
+        run: |
+          cd dist
+          zip -r ../finapp-${{ github.ref_name }}.zip .
+          cd ..
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: finapp-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          body: |
+            ## Installation
+
+            1. Download `finapp-${{ github.ref_name }}.zip` below
+            2. Extract the contents to your web server's document root (or a subdirectory)
+            3. **Required:** configure your web server to send these headers on every response:
+               ```
+               Cross-Origin-Opener-Policy: same-origin
+               Cross-Origin-Embedder-Policy: require-corp
+               ```
+               These are required for the SQLite WASM engine. See the [self-hosting docs](https://github.com/Stoneguard001/finapp#self-hosting) for Nginx, Apache, and Caddy examples.

@@ -1,7 +1,15 @@
-import { Info, Github, Heart, Database, Shield } from "lucide-react";
+import {
+  Info,
+  Github,
+  Heart,
+  Database,
+  Shield,
+  ExternalLink,
+} from "lucide-react";
 
 const GITHUB_URL = "https://github.com/Stoneguard001/finapp";
 const KOFI_URL = "https://ko-fi.com/philallion0979";
+const HOSTED_URL = "https://stoneguardian.com/finapp/";
 
 export default function About() {
   return (
@@ -49,6 +57,26 @@ export default function About() {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="card mb-4 space-y-3">
+        <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
+          Live site
+        </h2>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          The live site is available at stoneguardian.com — no install required.
+          Your data stays entirely in your browser; nothing is sent to the
+          server.
+        </p>
+        <a
+          href={HOSTED_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-brand-600 text-white text-sm font-medium hover:bg-brand-700 transition-colors"
+        >
+          <ExternalLink size={16} />
+          Open live site
+        </a>
       </div>
 
       <div className="card mb-4 space-y-3">
