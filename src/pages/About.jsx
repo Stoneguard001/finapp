@@ -141,7 +141,7 @@ export default function About() {
         <p className="text-xs text-slate-400 dark:text-slate-600 pt-1">
           MIT License &mdash;{" "}
           <a
-            href={`${GITHUB_URL}/blob/master/LICENSE`}
+            href={`${GITHUB_URL}/blob/main/LICENSE`}
             target="_blank"
             rel="noreferrer"
             className="underline hover:text-brand-500 transition-colors"
