@@ -32,16 +32,14 @@ jobs:
 
       - name: Deploy hashed assets (long cache)
         run: |
-          aws s3 sync dist/assets/ s3://stoneguardian.com/assets/ \
-            --acl public-read \
+          aws s3 sync dist/assets/ s3://${{ secrets.AWS_S3_BUCKET }}/assets/ \
             --cache-control "public, max-age=31536000, immutable" \
             --delete
 
       - name: Deploy app root files (no cache)
         run: |
-          aws s3 sync dist/ s3://stoneguardian.com/finapp/ \
+          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }}/finapp/ \
             --exclude "assets/*" \
-            --acl public-read \
             --cache-control "public, max-age=0, must-revalidate" \
             --delete
 
