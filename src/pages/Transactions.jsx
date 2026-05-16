@@ -143,7 +143,7 @@ export default function Transactions() {
 
           {viewMode === 'month' ? (
             <div className="flex items-center gap-1">
-              <button onClick={() => changeMonth(m => subMonths(m, 1))} className="btn-ghost p-1" title="Previous month">
+              <button onClick={() => changeMonth(m => subMonths(m, 1))} className="btn-ghost p-2.5" title="Previous month">
                 <ChevronLeft size={18} />
               </button>
               <span className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
@@ -151,7 +151,7 @@ export default function Transactions() {
               </span>
               <button
                 onClick={() => changeMonth(m => addMonths(m, 1))}
-                className="btn-ghost p-1"
+                className="btn-ghost p-2.5"
                 disabled={isCurrentMonth}
                 title="Next month"
               >
@@ -247,12 +247,12 @@ export default function Transactions() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-800 text-left">
-              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Date</th>
-              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Description</th>
-              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Account</th>
-              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Category</th>
-              <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500 text-right">Amount</th>
-              <th className="px-4 py-3 w-16"></th>
+              <th className="px-2 sm:px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Date</th>
+              <th className="px-2 sm:px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Description</th>
+              <th className="hidden sm:table-cell px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Account</th>
+              <th className="hidden sm:table-cell px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Category</th>
+              <th className="hidden sm:table-cell px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500 text-right">Amount</th>
+              <th className="px-2 sm:px-4 py-3 w-16"></th>
             </tr>
           </thead>
           <tbody>
@@ -265,8 +265,13 @@ export default function Transactions() {
             )}
             {filtered.map(tx => (
               <tr key={tx.id} className="border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-colors">
-                <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">{fmtDate(tx.date)}</td>
-                <td className="px-4 py-3 max-w-xs">
+                <td className="px-2 sm:px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap align-top">
+                  {fmtDate(tx.date)}
+                  <div className="block sm:hidden mt-1">
+                    <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
+                  </div>
+                </td>
+                <td className="px-2 sm:px-4 py-3 max-w-xs min-w-0 align-top">
                   <div className="text-slate-800 dark:text-slate-200 truncate">{tx.description}</div>
                   {tx.tags.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
@@ -279,23 +284,26 @@ export default function Transactions() {
                       ))}
                     </div>
                   )}
+                  <div className={`block sm:hidden mt-1 font-mono font-medium ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-700 dark:text-slate-300'}`}>
+                    {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
+                  </div>
                 </td>
-                <td className="px-4 py-3">
+                <td className="hidden sm:table-cell px-4 py-3">
                   <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs">
                     <span className="w-2 h-2 rounded-full" style={{ background: tx.account_color ?? '#64748b' }} />
                     {tx.account_name}
                   </span>
                 </td>
-                <td className="px-4 py-3">
+                <td className="hidden sm:table-cell px-4 py-3">
                   <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
                 </td>
-                <td className={`px-4 py-3 text-right font-mono font-medium ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                <td className={`hidden sm:table-cell px-4 py-3 text-right font-mono font-medium whitespace-nowrap ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-800 dark:text-slate-200'}`}>
                   {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
                 </td>
-                <td className="px-4 py-3">
+                <td className="px-2 sm:px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">
-                    <button onClick={() => setEditing(tx)}      className="btn-ghost p-1 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit transaction"><Pencil size={13} /></button>
-                    <button onClick={() => handleDelete(tx.id)} className="btn-ghost p-1 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete transaction"><Trash2 size={13} /></button>
+                    <button onClick={() => setEditing(tx)}      className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit transaction"><Pencil size={13} /></button>
+                    <button onClick={() => handleDelete(tx.id)} className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete transaction"><Trash2 size={13} /></button>
                   </div>
                 </td>
               </tr>

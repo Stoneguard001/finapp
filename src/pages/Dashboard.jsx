@@ -80,7 +80,7 @@ export default function Dashboard() {
     <div className="space-y-6">
       {/* Month navigation */}
       <div className="flex items-center gap-2">
-        <button onClick={() => setSelectedMonth(m => subMonths(m, 1))} className="btn-ghost p-1" title="Previous month">
+        <button onClick={() => setSelectedMonth(m => subMonths(m, 1))} className="btn-ghost p-2.5" title="Previous month">
           <ChevronLeft size={18} />
         </button>
         <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
@@ -88,7 +88,7 @@ export default function Dashboard() {
         </h1>
         <button
           onClick={() => setSelectedMonth(m => addMonths(m, 1))}
-          className="btn-ghost p-1"
+          className="btn-ghost p-2.5"
           disabled={isCurrentMonth}
           title="Next month"
         >
@@ -127,24 +127,26 @@ export default function Dashboard() {
           {byCategory.length === 0 ? (
             <p className="text-slate-400 dark:text-slate-600 text-sm text-center py-12">No spending data for this month</p>
           ) : (
-            <div className="flex gap-4">
-              <ResponsiveContainer width={180} height={180} className="flex-shrink-0">
-                <PieChart>
-                  <Pie data={byCategory} dataKey="total" cx="50%" cy="50%"
-                    innerRadius={48} outerRadius={82} paddingAngle={2}>
-                    {byCategory.map((cat, i) => (
-                      <Cell key={cat.id ?? i} fill={cat.color ?? '#475569'}
-                        onClick={() => handleCategoryClick(cat)}
-                        style={{ cursor: cat.id ? 'pointer' : 'default' }} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle}
-                    formatter={(v, name) => {
-                      const pct = totalSpend > 0 ? Math.round(v / totalSpend * 100) : 0
-                      return [`${fmt(v)} (${pct}%)`, name ?? 'Uncategorized']
-                    }} />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col items-center sm:flex-row gap-4">
+              <div className="w-[180px] h-[180px] flex-shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={byCategory} dataKey="total" cx="50%" cy="50%"
+                      innerRadius={48} outerRadius={82} paddingAngle={2}>
+                      {byCategory.map((cat, i) => (
+                        <Cell key={cat.id ?? i} fill={cat.color ?? '#475569'}
+                          onClick={() => handleCategoryClick(cat)}
+                          style={{ cursor: cat.id ? 'pointer' : 'default' }} />
+                      ))}
+                    </Pie>
+                    <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle}
+                      formatter={(v, name) => {
+                        const pct = totalSpend > 0 ? Math.round(v / totalSpend * 100) : 0
+                        return [`${fmt(v)} (${pct}%)`, name ?? 'Uncategorized']
+                      }} />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
 
               <div className="flex-1 min-w-0 space-y-1.5">
                 {byCategory.map(cat => {

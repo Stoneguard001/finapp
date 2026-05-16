@@ -237,7 +237,7 @@ export default function ImportPage() {
                           </select>
                           <button
                             title="Save as rule"
-                            className="btn-ghost p-1 text-slate-400 dark:text-slate-600 hover:text-brand-400 flex-shrink-0"
+                            className="btn-ghost p-2 text-slate-400 dark:text-slate-600 hover:text-brand-400 flex-shrink-0"
                             onClick={() => setSavingRuleFor({ idx: i, pattern: row.description, categoryId: row.category_id })}
                           >
                             <BookmarkPlus size={13} />

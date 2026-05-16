@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, PiggyBank,
-  Upload, Tag, ListFilter, HelpCircle, Info, ChevronLeft, ChevronRight
+  Upload, Tag, ListFilter, HelpCircle, Info, ChevronLeft, ChevronRight, X
 } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 
@@ -18,44 +18,77 @@ const NAV = [
   { to: '/about',        icon: Info,            label: 'About' },
 ]
 
-export default function Sidebar() {
-  const [collapsed, setCollapsed] = useState(() => window.innerWidth < 768)
+export default function Sidebar({ mobileOpen, onMobileClose }) {
+  const [collapsed, setCollapsed] = useState(false)
   const { dark } = useTheme()
 
   return (
-    <aside className={`${collapsed ? 'w-14' : 'w-56'} flex-shrink-0 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-[width] duration-200`}>
-      <div className={`flex items-center ${collapsed ? 'justify-center' : 'px-4'} py-5 border-b border-slate-200 dark:border-slate-800`}>
-        {!collapsed && (
-          <span className="flex-1 text-lg font-bold text-brand-500 tracking-tight">FinApp</span>
-        )}
-        <button
-          onClick={() => setCollapsed(c => !c)}
-          title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          className="p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-        >
-          {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-        </button>
-      </div>
+    <>
+      {/* Mobile backdrop */}
+      <div
+        className={`fixed inset-0 z-30 bg-black/50 transition-opacity md:hidden ${
+          mobileOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+        }`}
+        onClick={onMobileClose}
+      />
 
-      <nav className="flex-1 py-4 px-2 space-y-0.5">
-        {NAV.map(({ to, icon: Icon, label }) => (
-          <NavLink
-            key={to}
-            to={to}
-            title={collapsed ? label : undefined}
-            className={({ isActive }) =>
-              `flex items-center py-2 rounded-lg text-sm font-medium transition-colors
-               ${collapsed ? 'justify-center px-0' : 'gap-3 px-3'}
-               ${isActive
-                 ? (dark ? 'bg-brand-900/50 text-brand-400' : 'bg-brand-100 text-brand-700')
-                 : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'}`
-            }
+      <aside
+        className={`
+          fixed inset-y-0 left-0 z-40 flex-shrink-0 flex flex-col
+          bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800
+          transition-transform duration-200 md:transition-[width] md:duration-200
+          w-64 md:relative md:inset-auto md:z-auto md:translate-x-0
+          ${collapsed ? 'md:w-14' : 'md:w-56'}
+          ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}
+        `}
+      >
+        <div
+          className={`flex items-center py-5 border-b border-slate-200 dark:border-slate-800 px-4 ${
+            collapsed ? 'md:justify-center md:px-0' : ''
+          }`}
+        >
+          <span className={`flex-1 text-lg font-bold text-brand-500 tracking-tight ${collapsed ? 'md:hidden' : ''}`}>
+            FinApp
+          </span>
+          {/* Mobile close button */}
+          <button
+            onClick={onMobileClose}
+            title="Close menu"
+            className="md:hidden p-2 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
           >
-            <Icon size={16} />
-            {!collapsed && label}
-          </NavLink>
-        ))}
-      </nav>
-    </aside>
+            <X size={18} />
+          </button>
+          {/* Desktop collapse toggle */}
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden md:block p-1 rounded text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+          >
+            {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          </button>
+        </div>
+
+        <nav className="flex-1 py-4 px-2 space-y-0.5">
+          {NAV.map(({ to, icon: Icon, label }) => (
+            <NavLink
+              key={to}
+              to={to}
+              onClick={onMobileClose}
+              title={collapsed ? label : undefined}
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                 ${collapsed ? 'md:justify-center md:px-0' : ''}
+                 ${isActive
+                   ? (dark ? 'bg-brand-900/50 text-brand-400' : 'bg-brand-100 text-brand-700')
+                   : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-800'}`
+              }
+            >
+              <Icon size={16} />
+              <span className={collapsed ? 'md:hidden' : ''}>{label}</span>
+            </NavLink>
+          ))}
+        </nav>
+      </aside>
+    </>
   )
 }

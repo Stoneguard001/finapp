@@ -14,7 +14,7 @@ export default function Modal({ title, onClose, children }) {
       <div className="relative z-10 w-full max-w-md bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-2xl">
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200 dark:border-slate-800">
           <h2 className="font-semibold text-slate-900 dark:text-slate-100">{title}</h2>
-          <button onClick={onClose} className="btn-ghost p-1" title="Close"><X size={16} /></button>
+          <button onClick={onClose} className="btn-ghost p-2.5" title="Close"><X size={16} /></button>
         </div>
         <div className="px-6 py-4 space-y-4">{children}</div>
       </div>

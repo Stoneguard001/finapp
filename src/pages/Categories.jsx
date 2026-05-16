@@ -360,7 +360,7 @@ export default function Categories() {
                 <td className="py-2">
                   <button onClick={() => removeRule(r.id)}
                     title="Delete rule"
-                    className="btn-ghost p-1 text-slate-400 dark:text-slate-500 hover:text-red-500">
+                    className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500">
                     <Trash2 size={13} />
                   </button>
                 </td>
