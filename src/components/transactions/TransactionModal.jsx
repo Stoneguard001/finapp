@@ -12,7 +12,7 @@ export default function TransactionModal({ transaction, categories, accounts, ta
   const { data: allBudgets = [] } = useQuery(() => getBudgets())
 
   const [form, setForm] = useState({
-    account_id:     transaction.account_id     ?? '',
+    account_id:     transaction.account_id     ?? (isNew ? (localStorage.getItem('txn_lastAccount') ?? '') : ''),
     date:           transaction.date           ?? new Date().toISOString().slice(0, 10),
     amount:         transaction.amount         ?? '',
     description:    transaction.description    ?? '',
@@ -65,6 +65,7 @@ export default function TransactionModal({ transaction, categories, accounts, ta
     const id = isNew ? createTransaction(data) : transaction.id
     if (!isNew) updateTransaction(id, data)
     setTransactionTags(id, selectedTagIds)
+    localStorage.setItem('txn_lastAccount', String(form.account_id))
     onSave()
   }
 

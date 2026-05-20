@@ -24,9 +24,9 @@ export const useDbStore = create((set, get) => {
     fileHandle: null,
     autoSave: localStorage.getItem(LS_KEY) === 'true',
 
-    async openNew() {
+    async openNew(seeded = true) {
       closeDatabase()
-      await initDatabase()
+      await initDatabase(null, { seeded })
 
       if ('showSaveFilePicker' in window) {
         const date = new Date().toISOString().slice(0, 10)

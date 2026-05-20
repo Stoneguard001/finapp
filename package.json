@@ -1,6 +1,6 @@
 {
   "name": "finapp",
-  "version": "0.1.0",
+  "version": "1.0.4",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:site": "vite build --base=/finapp/",
     "preview": "vite preview",
-    "lint": "eslint src --ext .js,.jsx"
+    "lint": "eslint src --ext .js,.jsx",
+    "generate-sample": "node scripts/generate-sample-db.js"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

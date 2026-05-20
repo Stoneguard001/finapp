@@ -1,21 +1,23 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Pencil, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
-import { getTransactions, deleteTransaction } from '@/db/queries/transactions'
+import { getTransactions, deleteTransaction, updateTransaction } from '@/db/queries/transactions'
 import { getCategories } from '@/db/queries/categories'
 import { getAccounts } from '@/db/queries/accounts'
 import { getTags } from '@/db/queries/tags'
+import { getBudgets } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
 import { fmt, fmtDate } from '@/lib/fmt'
 import CategoryBadge from '@/components/CategoryBadge'
 import YearPicker from '@/components/YearPicker'
 import TransactionModal from '@/components/transactions/TransactionModal'
 
+const NC = '__nc__'
+
 export default function Transactions() {
   const [searchParams] = useSearchParams()
   const [selectedMonth, setSelectedMonth] = useState(() => {
-    // URL param takes priority (e.g. navigating here from the dashboard)
     const m = searchParams.get('month')
     if (m) {
       const [y, mo] = m.split('-').map(Number)
@@ -35,12 +37,17 @@ export default function Transactions() {
   const [refresh, setRefresh]             = useState(0)
   const bump = useCallback(() => setRefresh(r => r + 1), [])
 
+  const [selectedIds, setSelectedIds] = useState(new Set())
+  const [bulkCategory, setBulkCategory] = useState(NC)
+  const [bulkBudget, setBulkBudget]     = useState(NC)
+  const selectAllRef = useRef(null)
+
   const isCurrentMonth = isSameMonth(selectedMonth, new Date())
   const monthStart = format(startOfMonth(selectedMonth), 'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(selectedMonth),   'yyyy-MM-dd')
 
-  const startDate = viewMode === 'year' ? `${selectedYear}-01-01` : monthStart
-  const endDate   = viewMode === 'year' ? `${selectedYear}-12-31` : monthEnd
+  const startDate  = viewMode === 'year' ? `${selectedYear}-01-01` : monthStart
+  const endDate    = viewMode === 'year' ? `${selectedYear}-12-31` : monthEnd
   const fetchLimit = viewMode === 'year' ? 5000 : 2000
 
   const { data: transactions = [] } = useQuery(
@@ -54,11 +61,13 @@ export default function Transactions() {
       localStorage.setItem('txn_selectedMonth', next.toISOString())
       return next
     })
+    setSelectedIds(new Set())
   }
 
   function changeYear(year) {
     setSelectedYear(year)
     localStorage.setItem('txn_selectedYear', String(year))
+    setSelectedIds(new Set())
   }
 
   function switchMode(mode) {
@@ -66,9 +75,11 @@ export default function Transactions() {
     setViewMode(mode)
     localStorage.setItem('txn_viewMode', mode)
   }
+
   const { data: categories = [] } = useQuery(() => getCategories())
   const { data: accounts = [] }   = useQuery(() => getAccounts())
   const { data: tags = [] }       = useQuery(() => getTags(), [refresh])
+  const { data: allBudgets = [] } = useQuery(() => getBudgets())
 
   const availableGroups = useMemo(() => {
     const seen = new Set()
@@ -101,6 +112,50 @@ export default function Transactions() {
     return true
   })
 
+  const allFilteredSelected  = filtered.length > 0 && filtered.every(t => selectedIds.has(t.id))
+  const someFilteredSelected = filtered.some(t => selectedIds.has(t.id))
+
+  const bulkCategoryBudgets = useMemo(() =>
+    bulkCategory !== NC && bulkCategory !== ''
+      ? allBudgets.filter(b => b.category_id === Number(bulkCategory))
+      : [],
+    [bulkCategory, allBudgets]
+  )
+
+  useEffect(() => {
+    if (selectAllRef.current) {
+      selectAllRef.current.indeterminate = someFilteredSelected && !allFilteredSelected
+    }
+  }, [someFilteredSelected, allFilteredSelected])
+
+  function toggleSelectAll() {
+    if (allFilteredSelected) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filtered.map(t => t.id)))
+    }
+  }
+
+  function toggleSelect(id) {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      next.has(id) ? next.delete(id) : next.add(id)
+      return next
+    })
+  }
+
+  function applyBulk() {
+    const fields = {}
+    if (bulkCategory !== NC) fields.category_id    = bulkCategory ? Number(bulkCategory) : null
+    if (bulkBudget   !== NC) fields.budget_item_id = bulkBudget   ? Number(bulkBudget)   : null
+    if (!Object.keys(fields).length) return
+    selectedIds.forEach(id => updateTransaction(id, fields))
+    setSelectedIds(new Set())
+    setBulkCategory(NC)
+    setBulkBudget(NC)
+    bump()
+  }
+
   const activeFilters = [filterAccount, filterGroup, filterCategory, filterTag].filter(Boolean).length
 
   function clearFilters() {
@@ -122,6 +177,7 @@ export default function Transactions() {
   async function handleDelete(id) {
     if (!confirm('Delete this transaction?')) return
     deleteTransaction(id)
+    setSelectedIds(prev => { const next = new Set(prev); next.delete(id); return next })
     bump()
   }
 
@@ -242,11 +298,63 @@ export default function Transactions() {
         </div>
       )}
 
+      {/* Bulk action bar */}
+      {selectedIds.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 px-4 py-2.5 bg-brand-50 dark:bg-brand-900/20 border border-brand-200 dark:border-brand-900 rounded-lg text-sm">
+          <span className="font-medium text-brand-700 dark:text-brand-300 shrink-0">
+            {selectedIds.size} selected
+          </span>
+          <div className="h-4 w-px bg-brand-200 dark:bg-brand-800 shrink-0" />
+          <select
+            className="input py-1 text-sm"
+            value={bulkCategory}
+            onChange={e => { setBulkCategory(e.target.value); setBulkBudget(NC) }}
+          >
+            <option value={NC}>Category: no change</option>
+            <option value="">Uncategorized</option>
+            {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
+          </select>
+          {bulkCategoryBudgets.length > 0 && (
+            <select
+              className="input py-1 text-sm"
+              value={bulkBudget}
+              onChange={e => setBulkBudget(e.target.value)}
+            >
+              <option value={NC}>Budget: no change</option>
+              <option value="">— none —</option>
+              {bulkCategoryBudgets.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+            </select>
+          )}
+          <button
+            className="btn-primary py-1 px-3 text-sm shrink-0"
+            onClick={applyBulk}
+            disabled={bulkCategory === NC && bulkBudget === NC}
+          >
+            Apply
+          </button>
+          <button
+            className="btn-ghost py-1 px-2 text-sm text-slate-500 shrink-0"
+            onClick={() => setSelectedIds(new Set())}
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Table */}
       <div className="card p-0 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-800 text-left">
+              <th className="px-2 sm:px-4 py-3 w-8">
+                <input
+                  ref={selectAllRef}
+                  type="checkbox"
+                  className="rounded border-slate-300 dark:border-slate-600 cursor-pointer"
+                  checked={allFilteredSelected}
+                  onChange={toggleSelectAll}
+                />
+              </th>
               <th className="px-2 sm:px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Date</th>
               <th className="px-2 sm:px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Description</th>
               <th className="hidden sm:table-cell px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Account</th>
@@ -258,13 +366,24 @@ export default function Transactions() {
           <tbody>
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-400 dark:text-slate-600">
+                <td colSpan={7} className="px-4 py-10 text-center text-slate-400 dark:text-slate-600">
                   {transactions.length === 0 ? `No transactions this ${viewMode}` : 'No transactions match your filters'}
                 </td>
               </tr>
             )}
             {filtered.map(tx => (
-              <tr key={tx.id} className="border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-colors">
+              <tr
+                key={tx.id}
+                className={`border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-colors ${selectedIds.has(tx.id) ? 'bg-brand-50/40 dark:bg-brand-950/20' : ''}`}
+              >
+                <td className="px-2 sm:px-4 py-3">
+                  <input
+                    type="checkbox"
+                    className="rounded border-slate-300 dark:border-slate-600 cursor-pointer"
+                    checked={selectedIds.has(tx.id)}
+                    onChange={() => toggleSelect(tx.id)}
+                  />
+                </td>
                 <td className="px-2 sm:px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap align-top">
                   {fmtDate(tx.date)}
                   <div className="block sm:hidden mt-1">

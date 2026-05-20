@@ -1,6 +1,7 @@
-import { HelpCircle, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, Link, ChevronDown, ChevronRight, Info } from 'lucide-react'
+import { HelpCircle, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, Link, ChevronDown, ChevronRight, Info, Download } from 'lucide-react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useState } from 'react'
+import { downloadSampleDb } from '@/lib/sampleDb'
 
 function Section({ icon: Icon, title, children }) {
   const [open, setOpen] = useState(false)
@@ -37,6 +38,13 @@ function Tip({ children }) {
 }
 
 export default function Help() {
+  const [generating, setGenerating] = useState(false)
+
+  async function handleDownloadSample() {
+    setGenerating(true)
+    try { await downloadSampleDb() } finally { setGenerating(false) }
+  }
+
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       <div className="flex items-center gap-3 mb-6">
@@ -45,6 +53,21 @@ export default function Help() {
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Help &amp; Guide</h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Everything you need to get started with FinApp</p>
         </div>
+      </div>
+
+      <div className="card mb-4 flex items-center justify-between gap-4">
+        <div className="min-w-0">
+          <p className="font-medium text-slate-900 dark:text-slate-100 text-sm">Try it with sample data</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Download a ready-made database with 3 months of transactions across 3 accounts.</p>
+        </div>
+        <button
+          onClick={handleDownloadSample}
+          disabled={generating}
+          className="btn-primary shrink-0 flex items-center gap-2 text-sm py-1.5 px-3"
+        >
+          <Download size={14} />
+          {generating ? 'Generating…' : 'Download Sample'}
+        </button>
       </div>
 
       <Section icon={LayoutDashboard} title="Getting Started">

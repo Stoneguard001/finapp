@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { Upload, CheckCircle, AlertCircle, X, BookmarkPlus } from 'lucide-react'
 import { parseCSV } from '@/parsers/csv'
 import { parseExcel } from '@/parsers/excel'
@@ -6,7 +6,7 @@ import { parsePDF } from '@/parsers/pdf'
 import PdfMapper from '@/components/PdfMapper'
 import { getAccounts } from '@/db/queries/accounts'
 import { getCategories, getRules, applyRules } from '@/db/queries/categories'
-import { findDuplicates, createTransaction } from '@/db/queries/transactions'
+import { findFuzzyDuplicates, createTransaction } from '@/db/queries/transactions'
 import { setTransactionTags } from '@/db/queries/tags'
 import { run } from '@/db/database'
 import { useQuery } from '@/hooks/useQuery'
@@ -14,8 +14,6 @@ import { fmt, fmtDate } from '@/lib/fmt'
 import CategoryBadge from '@/components/CategoryBadge'
 import RuleModal from '@/components/RuleModal'
 import { getTags } from '@/db/queries/tags'
-
-const STEPS = ['upload', 'preview', 'done']
 
 export default function ImportPage() {
   const [step, setStep]               = useState('upload')
@@ -27,11 +25,38 @@ export default function ImportPage() {
   const [error, setError]             = useState(null)
   const [pdfData, setPdfData]         = useState(null)
   const [savingRuleFor, setSavingRuleFor] = useState(null)
+  const [excluded, setExcluded]       = useState(new Set())
+  const [dupIndices, setDupIndices]   = useState(new Set())
+  const selectAllRef                  = useRef(null)
+  const rowsRef                       = useRef(rows)
+  rowsRef.current = rows
 
   const { data: accounts = [] }   = useQuery(() => getAccounts())
   const { data: categories = [] } = useQuery(() => getCategories())
   const { data: rules = [] }      = useQuery(() => getRules())
   const { data: tags = [] }       = useQuery(() => getTags())
+
+  // Re-run fuzzy dup check whenever the account or step changes
+  useEffect(() => {
+    if (!accountId || step !== 'preview' || rowsRef.current.length === 0) {
+      setDupIndices(new Set())
+      return
+    }
+    const dups = new Set()
+    rowsRef.current.forEach((row, i) => {
+      if (findFuzzyDuplicates(Number(accountId), row.date, row.amount, row.description).length > 0)
+        dups.add(i)
+    })
+    setDupIndices(dups)
+    setExcluded(dups)
+  }, [accountId, step])
+
+  // Keep select-all checkbox indeterminate state in sync
+  useEffect(() => {
+    if (!selectAllRef.current) return
+    const includedCount = rows.length - excluded.size
+    selectAllRef.current.indeterminate = includedCount > 0 && excluded.size > 0
+  }, [excluded, rows.length])
 
   const onDrop = useCallback(async (e) => {
     e.preventDefault()
@@ -62,6 +87,8 @@ export default function ImportPage() {
         return { ...r, category_id: match?.category_id ?? null, tag_ids: match?.tag_ids ?? [] }
       })
       setRows(enriched)
+      setExcluded(new Set())
+      setDupIndices(new Set())
       setProfile(parsed.profile)
       setStep('preview')
     } catch (err) {
@@ -84,6 +111,25 @@ export default function ImportPage() {
     }))
   }
 
+  function toggleExcluded(i) {
+    setExcluded(prev => {
+      const next = new Set(prev)
+      next.has(i) ? next.delete(i) : next.add(i)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    const includedCount = rows.length - excluded.size
+    if (includedCount > 0) {
+      // exclude all
+      setExcluded(new Set(rows.map((_, i) => i)))
+    } else {
+      // include all
+      setExcluded(new Set())
+    }
+  }
+
   async function handleImport() {
     if (!accountId) return alert('Select an account first')
     setLoading(true)
@@ -94,10 +140,12 @@ export default function ImportPage() {
       [accountId, 'import', 'unknown', profile, 0, 0]
     )
 
-    let imported = 0, skipped = 0
+    let imported = 0, skipped = 0, manuallyExcluded = excluded.size
 
-    for (const row of rows) {
-      const dups = findDuplicates(accountId, row.date, row.amount, row.description)
+    for (let i = 0; i < rows.length; i++) {
+      if (excluded.has(i)) continue
+      const row = rows[i]
+      const dups = findFuzzyDuplicates(Number(accountId), row.date, row.amount, row.description)
       if (dups.length > 0) { skipped++; continue }
       const txId = createTransaction({ ...row, account_id: Number(accountId), import_session_id: sessionId })
       if (row.tag_ids?.length) setTransactionTags(txId, row.tag_ids)
@@ -105,9 +153,9 @@ export default function ImportPage() {
     }
 
     run(`UPDATE import_sessions SET rows_imported=?, rows_skipped=? WHERE id=?`,
-      [imported, skipped, sessionId])
+      [imported, skipped + manuallyExcluded, sessionId])
 
-    setResult({ imported, skipped })
+    setResult({ imported, skipped, excluded: manuallyExcluded })
     setStep('done')
     setLoading(false)
   }
@@ -118,11 +166,24 @@ export default function ImportPage() {
       return { ...r, category_id: match?.category_id ?? null, tag_ids: match?.tag_ids ?? [] }
     })
     setRows(enriched)
+    setExcluded(new Set())
+    setDupIndices(new Set())
     setProfile('pdf_mapped')
     setStep('preview')
   }
 
-  function reset() { setStep('upload'); setRows([]); setProfile(''); setResult(null); setError(null); setPdfData(null) }
+  function reset() {
+    setStep('upload')
+    setRows([])
+    setProfile('')
+    setResult(null)
+    setError(null)
+    setPdfData(null)
+    setExcluded(new Set())
+    setDupIndices(new Set())
+  }
+
+  const includedCount = rows.length - excluded.size
 
   return (
     <div className="space-y-6 max-w-4xl">
@@ -186,11 +247,18 @@ export default function ImportPage() {
             <p className="text-slate-500 text-sm">
               <span className="font-medium text-slate-800 dark:text-slate-200">{rows.length}</span> transactions parsed
               {profile && <span className="text-slate-400 dark:text-slate-600"> · {profile}</span>}
+              {excluded.size > 0 && (
+                <span className="text-slate-400 dark:text-slate-600"> · {excluded.size} excluded</span>
+              )}
             </p>
             <div className="flex gap-2">
               <button className="btn-ghost" onClick={reset}><X size={14} /> Cancel</button>
-              <button className="btn-primary" onClick={handleImport} disabled={loading || !accountId}>
-                {loading ? 'Importing…' : `Import ${rows.length} rows`}
+              <button
+                className="btn-primary"
+                onClick={handleImport}
+                disabled={loading || !accountId || includedCount === 0}
+              >
+                {loading ? 'Importing…' : `Import ${includedCount} row${includedCount !== 1 ? 's' : ''}`}
               </button>
             </div>
           </div>
@@ -209,6 +277,15 @@ export default function ImportPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 text-left">
+                  <th className="px-4 py-3 w-8">
+                    <input
+                      ref={selectAllRef}
+                      type="checkbox"
+                      className="rounded border-slate-300 dark:border-slate-600 cursor-pointer"
+                      checked={includedCount === rows.length && rows.length > 0}
+                      onChange={toggleAll}
+                    />
+                  </th>
                   <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Date</th>
                   <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Description</th>
                   <th className="px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Category</th>
@@ -218,10 +295,39 @@ export default function ImportPage() {
               <tbody>
                 {rows.map((row, i) => {
                   const cat = categories.find(c => c.id === row.category_id)
+                  const isExcluded = excluded.has(i)
+                  const isDup = dupIndices.has(i)
                   return (
-                    <tr key={i} className="border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/20 dark:hover:bg-slate-800/20">
-                      <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">{fmtDate(row.date)}</td>
-                      <td className="px-4 py-2.5 text-slate-800 dark:text-slate-200 max-w-xs truncate">{row.description}</td>
+                    <tr
+                      key={i}
+                      className={`border-b border-slate-200/50 dark:border-slate-800/50 transition-colors
+                        ${isExcluded
+                          ? 'opacity-40'
+                          : 'hover:bg-slate-100/20 dark:hover:bg-slate-800/20'}`}
+                    >
+                      <td className="px-4 py-2.5">
+                        <input
+                          type="checkbox"
+                          className="rounded border-slate-300 dark:border-slate-600 cursor-pointer"
+                          checked={!isExcluded}
+                          onChange={() => toggleExcluded(i)}
+                        />
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                        {fmtDate(row.date)}
+                      </td>
+                      <td className="px-4 py-2.5 max-w-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className={`truncate text-slate-800 dark:text-slate-200 ${isExcluded ? 'line-through' : ''}`}>
+                            {row.description}
+                          </span>
+                          {isDup && (
+                            <span className="shrink-0 text-[10px] font-medium px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400">
+                              duplicate
+                            </span>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-4 py-2.5">
                         <div className="flex items-center gap-1">
                           <select
@@ -262,9 +368,10 @@ export default function ImportPage() {
           <CheckCircle size={48} className="mx-auto text-brand-400" />
           <div>
             <p className="text-xl font-semibold text-slate-900 dark:text-slate-100">{result.imported} transactions imported</p>
-            {result.skipped > 0 && (
-              <p className="text-slate-500 text-sm mt-1">{result.skipped} duplicates skipped</p>
-            )}
+            <div className="text-slate-500 text-sm mt-1 space-y-0.5">
+              {result.skipped > 0 && <p>{result.skipped} duplicate{result.skipped !== 1 ? 's' : ''} skipped</p>}
+              {result.excluded > 0 && <p>{result.excluded} manually excluded</p>}
+            </div>
           </div>
           <button className="btn-primary" onClick={reset}>Import More</button>
         </div>

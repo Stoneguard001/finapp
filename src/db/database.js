@@ -1,6 +1,7 @@
 import initSqlJs from 'sql.js'
 import sqlWasm from 'sql.js/dist/sql-wasm.wasm?url'
 import schemaSQL from './schema.sql?raw'
+import schemaSeedSQL from './schema-seed.sql?raw'
 import { migrations } from './migrations'
 
 let _db = null
@@ -47,7 +48,14 @@ function runMigrations(db) {
   }
 }
 
-export async function initDatabase(fileBuffer = null) {
+export async function createFreshDatabase() {
+  if (!_SQL) {
+    _SQL = await initSqlJs({ locateFile: () => sqlWasm })
+  }
+  return new _SQL.Database()
+}
+
+export async function initDatabase(fileBuffer = null, { seeded = true } = {}) {
   if (!_SQL) {
     _SQL = await initSqlJs({ locateFile: () => sqlWasm })
   }
@@ -57,6 +65,7 @@ export async function initDatabase(fileBuffer = null) {
   } else {
     _db = new _SQL.Database()
     _db.run(schemaSQL)
+    if (seeded) _db.run(schemaSeedSQL)
   }
 
   runMigrations(_db)

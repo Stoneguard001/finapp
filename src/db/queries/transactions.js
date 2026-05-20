@@ -119,3 +119,14 @@ export const findDuplicates = (accountId, date, amount, description) =>
          WHERE account_id=? AND date=? AND amount=? AND description=?
          LIMIT 1`,
     [accountId, date, amount, description])
+
+// Matches same account/date/amount where either description contains the other (case-insensitive)
+export const findFuzzyDuplicates = (accountId, date, amount, description) =>
+  query(`SELECT id FROM transactions
+         WHERE account_id=? AND date=? AND amount=?
+           AND (
+             LOWER(description) LIKE '%' || LOWER(?) || '%'
+             OR LOWER(?) LIKE '%' || LOWER(description) || '%'
+           )
+         LIMIT 1`,
+    [accountId, date, amount, description, description])
