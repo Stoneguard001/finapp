@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useDbStore } from '@/store/dbStore'
+import { ToastProvider } from '@/context/ToastContext'
 import Layout from '@/components/layout/Layout'
 import Welcome from '@/pages/Welcome'
 import Dashboard from '@/pages/Dashboard'
@@ -14,6 +15,10 @@ import Help from '@/pages/Help'
 import About from '@/pages/About'
 
 export default function App() {
+  return <ToastProvider><AppInner /></ToastProvider>
+}
+
+function AppInner() {
   const ready = useDbStore(s => s.ready)
   const navigate = useNavigate()
   const location = useLocation()

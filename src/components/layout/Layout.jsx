@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
+import Toaster from '@/components/Toaster'
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -14,6 +15,7 @@ export default function Layout({ children }) {
           {children}
         </main>
       </div>
+      <Toaster />
     </div>
   )
 }

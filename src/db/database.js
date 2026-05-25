@@ -7,8 +7,10 @@ import { migrations } from './migrations'
 let _db = null
 let _SQL = null
 let _onWrite = null
+let _onError = null
 
 export const setOnWrite = (fn) => { _onWrite = fn }
+export const setOnError = (fn) => { _onError = fn }
 
 function runMigrations(db) {
   db.run(`
@@ -119,10 +121,15 @@ export function query(sql, params = []) {
 
 // Helper: run INSERT / UPDATE / DELETE
 export function run(sql, params = []) {
-  getDb().run(sql, params)
-  const id = getDb().exec('SELECT last_insert_rowid() as id')[0]?.values[0]?.[0] ?? null
-  _onWrite?.()
-  return id
+  try {
+    getDb().run(sql, params)
+    const id = getDb().exec('SELECT last_insert_rowid() as id')[0]?.values[0]?.[0] ?? null
+    _onWrite?.()
+    return id
+  } catch (e) {
+    _onError?.(e?.message ?? 'Database write failed.')
+    throw e
+  }
 }
 
 export function runMany(sql, paramSets) {

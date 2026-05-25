@@ -47,14 +47,16 @@ export default function Dashboard() {
   const normalizedSpending = useMemo(() => {
     const map = {}
     for (const t of transactions) {
-      if (t.amount >= 0 || t.is_transfer || !t.category_id) continue
-      const amt    = Math.abs(t.amount)
-      const period = t.budget_item_id ? t.budget_item_period : null
-      const factor = PERIOD_TO_MONTHLY[period] ?? 1
-      const value  = (period && factor < 1)
-        ? amt * factor
-        : amt
-      map[t.category_id] = (map[t.category_id] ?? 0) + value
+      if (t.is_transfer || !t.category_id) continue
+      if (t.amount < 0) {
+        const amt    = Math.abs(t.amount)
+        const period = t.budget_item_id ? t.budget_item_period : null
+        const factor = PERIOD_TO_MONTHLY[period] ?? 1
+        const value  = (period && factor < 1) ? amt * factor : amt
+        map[t.category_id] = (map[t.category_id] ?? 0) + value
+      } else if (t.amount > 0) {
+        map[t.category_id] = (map[t.category_id] ?? 0) + t.amount
+      }
     }
     return map
   }, [transactions])
@@ -69,6 +71,7 @@ export default function Dashboard() {
         category_id:   b.category_id,
         category_name: b.category_name ?? 'Uncategorized',
         category_icon: b.category_icon ?? '❓',
+        is_income:     b.is_income ?? 0,
         budgeted: 0
       }
       map[key].budgeted += b.amount * (PERIOD_TO_MONTHLY[b.period] ?? 1)
@@ -224,8 +227,22 @@ function KpiCard({ label, value, icon: Icon, color }) {
 }
 
 function CategoryBudgetBar({ group, onClick }) {
+  const isIncome = Boolean(group.is_income)
   const over = group.pct >= 100
-  const warn = group.pct >= 80 && !over
+  const warn = group.pct >= 80 && !over && !isIncome
+
+  const barColor = isIncome
+    ? 'bg-brand-500'
+    : over ? 'bg-red-500' : warn ? 'bg-yellow-500' : 'bg-brand-500'
+
+  const subline = isIncome
+    ? over
+      ? `${fmt(group.spent - group.budgeted)} above target`
+      : `${fmt(group.budgeted - group.spent)} remaining`
+    : over
+      ? `${fmt(group.spent - group.budgeted)} over`
+      : `${fmt(group.budgeted - group.spent)} left`
+
   return (
     <div
       className={`bg-slate-100/50 dark:bg-slate-800/50 rounded-lg p-3 ${onClick ? 'cursor-pointer hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors' : ''}`}
@@ -236,20 +253,18 @@ function CategoryBudgetBar({ group, onClick }) {
           <span className="shrink-0">{group.category_icon}</span>
           <span className="truncate">{group.category_name}</span>
         </span>
-        <span className={`text-xs shrink-0 ${over ? 'text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
+        <span className={`text-xs shrink-0 ${!isIncome && over ? 'text-red-400' : 'text-slate-500 dark:text-slate-400'}`}>
           {fmt(group.spent)} / {fmt(group.budgeted)}
         </span>
       </div>
       <div className="h-1.5 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
         <div
-          className={`h-full rounded-full transition-all ${over ? 'bg-red-500' : warn ? 'bg-yellow-500' : 'bg-brand-500'}`}
+          className={`h-full rounded-full transition-all ${barColor}`}
           style={{ width: `${Math.min(100, group.pct)}%` }}
         />
       </div>
-      <div className={`text-xs mt-1 ${over ? 'text-red-400' : 'text-slate-400 dark:text-slate-600'}`}>
-        {over
-          ? `${fmt(group.spent - group.budgeted)} over`
-          : `${fmt(group.budgeted - group.spent)} left`}
+      <div className={`text-xs mt-1 ${isIncome && over ? 'text-blue-500' : !isIncome && over ? 'text-red-400' : 'text-slate-400 dark:text-slate-400'}`}>
+        {subline}
       </div>
     </div>
   )

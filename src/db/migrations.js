@@ -51,5 +51,10 @@ export const migrations = [
     version: 5,
     description: 'Add color to category_groups',
     up: `ALTER TABLE category_groups ADD COLUMN color TEXT NOT NULL DEFAULT '#64748b'`
+  },
+  {
+    version: 6,
+    description: 'Add budget_item_id to category_rules',
+    up: 'ALTER TABLE category_rules ADD COLUMN budget_item_id INTEGER REFERENCES budgets(id)'
   }
 ]

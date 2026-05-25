@@ -53,18 +53,20 @@ const parseRuleTags = row => ({
 export const getRules = () =>
   query(`
     SELECT r.*, c.name as category_name,
+           b.id as budget_item_id, b.name as budget_item_name,
            GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw
     FROM category_rules r
     JOIN categories c ON c.id = r.category_id
+    LEFT JOIN budgets b ON b.id = r.budget_item_id
     LEFT JOIN rule_tags rt ON rt.rule_id = r.id
     LEFT JOIN tags tg ON tg.id = rt.tag_id
     GROUP BY r.id
     ORDER BY r.priority DESC, r.id
   `).map(parseRuleTags)
 
-export const createRule = ({ pattern, pattern_type = 'contains', category_id, priority = 0 }) =>
-  run('INSERT INTO category_rules (pattern,pattern_type,category_id,priority) VALUES (?,?,?,?)',
-    [pattern.toUpperCase(), pattern_type, category_id, priority])
+export const createRule = ({ pattern, pattern_type = 'contains', category_id, budget_item_id = null, priority = 0 }) =>
+  run('INSERT INTO category_rules (pattern,pattern_type,category_id,budget_item_id,priority) VALUES (?,?,?,?,?)',
+    [pattern.toUpperCase(), pattern_type, category_id, budget_item_id ?? null, priority])
 
 export const setRuleTags = (ruleId, tagIds) => {
   run('DELETE FROM rule_tags WHERE rule_id=?', [ruleId])
@@ -83,7 +85,7 @@ export const deleteCategory = (id) => {
   run('DELETE FROM categories WHERE id=?', [id])
 }
 
-// Apply rules to a description — returns { category_id, tag_ids } or null
+// Apply rules to a description — returns { category_id, budget_item_id, tag_ids } or null
 export function applyRules(description, rules) {
   const upper = description.toUpperCase()
   const sorted = [...rules].sort((a, b) => b.priority - a.priority)
@@ -95,10 +97,39 @@ export function applyRules(description, rules) {
       (rule.pattern_type === 'contains'    && upper.includes(p))
     if (matches) {
       return {
-        category_id: rule.category_id,
-        tag_ids:     rule.tags?.map(t => t.id) ?? rule.tag_ids ?? []
+        category_id:    rule.category_id,
+        budget_item_id: rule.budget_item_id ?? null,
+        tag_ids:        rule.tags?.map(t => t.id) ?? rule.tag_ids ?? []
       }
     }
   }
   return null
+}
+
+// Apply a rule retroactively to all existing matching transactions.
+// Returns the number of transactions updated.
+export function applyRuleToExisting(rule) {
+  const txns = query('SELECT id, description FROM transactions')
+  const upper = rule.pattern.toUpperCase()
+
+  const matched = txns.filter(t => {
+    const desc = (t.description ?? '').toUpperCase()
+    if (rule.pattern_type === 'starts_with') return desc.startsWith(upper)
+    if (rule.pattern_type === 'regex') {
+      try { return new RegExp(rule.pattern, 'i').test(t.description ?? '') } catch { return false }
+    }
+    return desc.includes(upper)
+  })
+
+  for (const t of matched) {
+    run('UPDATE transactions SET category_id=? WHERE id=?', [rule.category_id, t.id])
+    if (rule.budget_item_id) {
+      run('UPDATE transactions SET budget_item_id=? WHERE id=?', [rule.budget_item_id, t.id])
+    }
+    for (const tag of rule.tags ?? []) {
+      run('INSERT OR IGNORE INTO transaction_tags (transaction_id, tag_id) VALUES (?,?)', [t.id, tag.id])
+    }
+  }
+
+  return matched.length
 }

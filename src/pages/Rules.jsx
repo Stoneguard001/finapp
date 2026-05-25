@@ -1,8 +1,10 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Search, Info, X } from 'lucide-react'
-import { getRules, deleteRule, getCategories } from '@/db/queries/categories'
+import { Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Search, Info, X, Wand2 } from 'lucide-react'
+import { getRules, deleteRule, getCategories, applyRuleToExisting } from '@/db/queries/categories'
+import { getBudgets } from '@/db/queries/budgets'
 import { getTags } from '@/db/queries/tags'
 import { useQuery } from '@/hooks/useQuery'
+import { useToast } from '@/context/ToastContext'
 import RuleModal from '@/components/RuleModal'
 
 const TYPE_LABEL = { contains: 'contains', starts_with: 'starts with', regex: 'regex' }
@@ -20,14 +22,28 @@ export default function Rules() {
   const [search, setSearch]       = useState('')
   const [sort, setSort]           = useState({ col: 'priority', dir: 'desc' })
   const bump = useCallback(() => setRefresh(r => r + 1), [])
+  const { addToast } = useToast()
 
   const { data: rules      = [] } = useQuery(() => getRules(),      [refresh])
   const { data: categories = [] } = useQuery(() => getCategories())
   const { data: tags       = [] } = useQuery(() => getTags(),       [refresh])
+  const { data: budgets    = [] } = useQuery(() => getBudgets())
 
   function handleDelete(id) {
     if (!confirm('Delete this rule?')) return
     deleteRule(id)
+    bump()
+  }
+
+  function handleApply(rule) {
+    if (!confirm(`Apply rule "${rule.pattern}" to all existing matching transactions?`)) return
+    const count = applyRuleToExisting(rule)
+    addToast(
+      count === 0
+        ? 'No matching transactions found.'
+        : `Rule applied to ${count} transaction${count === 1 ? '' : 's'}.`,
+      count === 0 ? 'error' : 'success'
+    )
     bump()
   }
 
@@ -45,6 +61,7 @@ export default function Rules() {
           r.pattern.toLowerCase().includes(q) ||
           TYPE_LABEL[r.pattern_type].includes(q) ||
           r.category_name.toLowerCase().includes(q) ||
+          (r.budget_item_name ?? '').toLowerCase().includes(q) ||
           String(r.priority).includes(q) ||
           r.tags.some(t => t.name.toLowerCase().includes(q))
         )
@@ -52,11 +69,12 @@ export default function Rules() {
 
     return [...filtered].sort((a, b) => {
       let av, bv
-      if (sort.col === 'priority') { av = a.priority;          bv = b.priority }
-      if (sort.col === 'pattern')  { av = a.pattern;           bv = b.pattern }
-      if (sort.col === 'type')     { av = a.pattern_type;      bv = b.pattern_type }
-      if (sort.col === 'category') { av = a.category_name;     bv = b.category_name }
-      if (sort.col === 'tags')     { av = a.tags[0]?.name ?? ''; bv = b.tags[0]?.name ?? '' }
+      if (sort.col === 'priority')    { av = a.priority;            bv = b.priority }
+      if (sort.col === 'pattern')     { av = a.pattern;             bv = b.pattern }
+      if (sort.col === 'type')        { av = a.pattern_type;        bv = b.pattern_type }
+      if (sort.col === 'category')    { av = a.category_name;       bv = b.category_name }
+      if (sort.col === 'budget_item') { av = a.budget_item_name ?? ''; bv = b.budget_item_name ?? '' }
+      if (sort.col === 'tags')        { av = a.tags[0]?.name ?? ''; bv = b.tags[0]?.name ?? '' }
       if (av < bv) return sort.dir === 'asc' ? -1 : 1
       if (av > bv) return sort.dir === 'asc' ?  1 : -1
       return 0
@@ -118,6 +136,7 @@ export default function Rules() {
               <Th col="type">Match</Th>
               <Th col="pattern">Pattern</Th>
               <Th col="category">Category</Th>
+              <Th col="budget_item">Budget Item</Th>
               <Th col="tags">Tags</Th>
               <Th col="priority">
                 Priority
@@ -129,13 +148,13 @@ export default function Rules() {
                   <Info size={11} />
                 </span>
               </Th>
-              <th className="px-4 py-3 w-12"></th>
+              <th className="px-4 py-3 w-20"></th>
             </tr>
           </thead>
           <tbody>
             {processed.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-slate-400 dark:text-slate-600">
+                <td colSpan={7} className="px-4 py-10 text-center text-slate-400 dark:text-slate-600">
                   {search ? 'No rules match your search' : 'No rules yet — add one, or use "Save as rule" when importing'}
                 </td>
               </tr>
@@ -145,6 +164,9 @@ export default function Rules() {
                 <td className="px-4 py-3 text-slate-400 dark:text-slate-500 text-xs whitespace-nowrap">{TYPE_LABEL[r.pattern_type]}</td>
                 <td className="px-4 py-3 font-mono text-slate-800 dark:text-slate-200">{r.pattern}</td>
                 <td className="px-4 py-3 text-slate-700 dark:text-slate-300 whitespace-nowrap">{r.category_name}</td>
+                <td className="px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                  {r.budget_item_name ?? <span className="text-slate-300 dark:text-slate-600">—</span>}
+                </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {r.tags.map(t => (
@@ -158,11 +180,20 @@ export default function Rules() {
                 </td>
                 <td className="px-4 py-3 text-slate-500">{r.priority}</td>
                 <td className="px-4 py-3">
-                  <button onClick={() => handleDelete(r.id)}
-                    title="Delete rule"
-                    className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500">
-                    <Trash2 size={13} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => handleApply(r)}
+                      title="Apply to existing transactions"
+                      className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-brand-500"
+                    >
+                      <Wand2 size={13} />
+                    </button>
+                    <button onClick={() => handleDelete(r.id)}
+                      title="Delete rule"
+                      className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500">
+                      <Trash2 size={13} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -174,6 +205,7 @@ export default function Rules() {
         <RuleModal
           categories={categories}
           tags={tags}
+          budgets={budgets}
           onSave={() => { setShowModal(false); bump() }}
           onClose={() => setShowModal(false)}
         />

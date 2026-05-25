@@ -84,7 +84,7 @@ export default function ImportPage() {
       }
       const enriched = parsed.rows.map(r => {
         const match = applyRules(r.description ?? '', rules)
-        return { ...r, category_id: match?.category_id ?? null, tag_ids: match?.tag_ids ?? [] }
+        return { ...r, category_id: match?.category_id ?? null, budget_item_id: match?.budget_item_id ?? null, tag_ids: match?.tag_ids ?? [] }
       })
       setRows(enriched)
       setExcluded(new Set())
@@ -107,7 +107,7 @@ export default function ImportPage() {
     setRows(prev => prev.map(r => {
       if (r.category_id) return r
       const match = applyRules(r.description, [newRule, ...rules])
-      return match ? { ...r, category_id: match.category_id, tag_ids: match.tag_ids } : r
+      return match ? { ...r, category_id: match.category_id, budget_item_id: match.budget_item_id ?? null, tag_ids: match.tag_ids } : r
     }))
   }
 
@@ -163,7 +163,7 @@ export default function ImportPage() {
   function handleMapped(mappedRows) {
     const enriched = mappedRows.map(r => {
       const match = applyRules(r.description ?? '', rules)
-      return { ...r, category_id: match?.category_id ?? null, tag_ids: match?.tag_ids ?? [] }
+      return { ...r, category_id: match?.category_id ?? null, budget_item_id: match?.budget_item_id ?? null, tag_ids: match?.tag_ids ?? [] }
     })
     setRows(enriched)
     setExcluded(new Set())
