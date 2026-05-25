@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Plus, Pencil, Trash2, ChevronRight, ChevronDown } from 'lucide-react'
-import { getBudgets, deleteBudget, PERIOD_TO_MONTHLY, currentPeriodRange } from '@/db/queries/budgets'
-import { getTransactions } from '@/db/queries/transactions'
+import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Link2 } from 'lucide-react'
+import { getBudgets, deleteBudget, PERIOD_TO_MONTHLY } from '@/db/queries/budgets'
+import { getTransactions, updateTransaction } from '@/db/queries/transactions'
 import { useQuery } from '@/hooks/useQuery'
 import { fmt, fmtDate } from '@/lib/fmt'
 import BudgetModal from '@/components/budgets/BudgetModal'
@@ -71,7 +71,6 @@ export default function Budgets() {
   const spending = useMemo(() => {
     const expMonthly = {}
     const expAnnual  = {}
-    const expLinked  = {}
     const incMonthly = {}
     const incAnnual  = {}
 
@@ -80,10 +79,7 @@ export default function Budgets() {
       if (t.amount < 0) {
         const amt = Math.abs(t.amount)
         expAnnual[t.category_id] = (expAnnual[t.category_id] ?? 0) + amt
-        const period = t.budget_item_id ? t.budget_item_period : null
-        if (period && period !== 'monthly') {
-          expLinked[t.category_id] = (expLinked[t.category_id] ?? 0) + amt * (PERIOD_TO_MONTHLY[period] ?? 1)
-        } else if (t.date >= monthStart && t.date <= monthEnd) {
+        if (t.date >= monthStart && t.date <= monthEnd) {
           expMonthly[t.category_id] = (expMonthly[t.category_id] ?? 0) + amt
         }
       } else if (t.amount > 0) {
@@ -93,7 +89,7 @@ export default function Budgets() {
         }
       }
     }
-    return { expMonthly, expAnnual, expLinked, incMonthly, incAnnual }
+    return { expMonthly, expAnnual, incMonthly, incAnnual }
   }, [transactions, monthStart, monthEnd])
 
   const groups = useMemo(() => {
@@ -146,7 +142,7 @@ export default function Budgets() {
     const actual = view === 'monthly'
       ? isIncome
         ? (spending.incMonthly[group.category_id] ?? 0)
-        : (spending.expMonthly[group.category_id] ?? 0) + (spending.expLinked[group.category_id] ?? 0)
+        : (spending.expMonthly[group.category_id] ?? 0)
       : isIncome
         ? (spending.incAnnual[group.category_id] ?? 0)
         : (spending.expAnnual[group.category_id] ?? 0)
@@ -212,13 +208,15 @@ export default function Budgets() {
             const periodAbbr   = { weekly: 'wk', monthly: 'mo', quarterly: 'qtr', semi_annual: '6mo', annual: 'yr' }
             const isExpanded   = expandedItemId === item.id
 
-            const [periodStart, periodEnd] = currentPeriodRange(item)
+            const [viewStart, viewEnd] = view === 'monthly'
+              ? [monthStart, monthEnd]
+              : [yearStart, yearEnd]
             const itemTxns = transactions
               .filter(t =>
-                (isIncome ? t.amount > 0 : t.amount < 0) && (
+                (isIncome ? t.amount > 0 : t.amount < 0) &&
+                t.date >= viewStart && t.date <= viewEnd && (
                   t.budget_item_id === item.id ||
-                  (t.category_id === item.category_id && !t.budget_item_id &&
-                   t.date >= periodStart && t.date <= periodEnd)
+                  (t.category_id === item.category_id && !t.budget_item_id)
                 )
               )
               .sort((a, b) => b.date.localeCompare(a.date))
@@ -259,17 +257,29 @@ export default function Budgets() {
                       <>
                         <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
                           {itemTxns.map(t => (
-                            <div key={t.id} className="flex items-center justify-between px-3 py-1.5">
+                            <div key={t.id} className="flex items-center justify-between px-3 py-1.5 group/row">
                               <div className="flex items-center gap-2 min-w-0">
-                                {t.budget_item_id === item.id && (
-                                  <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-brand-500" title="Linked to this budget item" />
-                                )}
+                                {t.budget_item_id === item.id
+                                  ? <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-brand-500" title="Linked to this budget item" />
+                                  : <span className="shrink-0 w-1.5 h-1.5" />
+                                }
                                 <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">{fmtDate(t.date)}</span>
                                 <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{t.description}</span>
                               </div>
-                              <span className="text-xs font-medium text-slate-700 dark:text-slate-300 ml-3 shrink-0">
-                                {fmt(isIncome ? t.amount : Math.abs(t.amount))}
-                              </span>
+                              <div className="flex items-center gap-1 ml-3 shrink-0">
+                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                  {fmt(isIncome ? t.amount : Math.abs(t.amount))}
+                                </span>
+                                {!t.budget_item_id && (
+                                  <button
+                                    className="opacity-0 group-hover/row:opacity-100 transition-opacity btn-ghost p-1 text-slate-400 hover:text-brand-500"
+                                    title="Link to this budget item"
+                                    onClick={() => { updateTransaction(t.id, { budget_item_id: item.id }); bump() }}
+                                  >
+                                    <Link2 size={11} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>

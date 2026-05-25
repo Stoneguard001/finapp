@@ -30,12 +30,15 @@ export const getTransactions = ({ accountId, categoryId, tagId, startDate, endDa
            c.name  as category_name,
            c.icon  as category_icon,
            c.color as category_color,
+           b.name   as budget_item_name,
            b.period as budget_item_period,
+           bc.color as budget_item_color,
            GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw
     FROM transactions t
     LEFT JOIN accounts        a  ON a.id  = t.account_id
     LEFT JOIN categories      c  ON c.id  = t.category_id
     LEFT JOIN budgets          b  ON b.id  = t.budget_item_id
+    LEFT JOIN categories      bc ON bc.id = b.category_id
     LEFT JOIN transaction_tags tt ON tt.transaction_id = t.id
     LEFT JOIN tags            tg ON tg.id = tt.tag_id
     ${where}

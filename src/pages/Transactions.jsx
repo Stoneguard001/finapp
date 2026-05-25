@@ -388,6 +388,9 @@ export default function Transactions() {
                   {fmtDate(tx.date)}
                   <div className="block sm:hidden mt-1">
                     <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
+                    {tx.budget_item_name && (
+                      <div className="mt-0.5 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
+                    )}
                   </div>
                 </td>
                 <td className="px-2 sm:px-4 py-3 max-w-xs min-w-0 align-top">
@@ -415,6 +418,9 @@ export default function Transactions() {
                 </td>
                 <td className="hidden sm:table-cell px-4 py-3">
                   <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
+                  {tx.budget_item_name && (
+                    <div className="mt-1 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
+                  )}
                 </td>
                 <td className={`hidden sm:table-cell px-4 py-3 text-right font-mono font-medium whitespace-nowrap ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-800 dark:text-slate-200'}`}>
                   {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}

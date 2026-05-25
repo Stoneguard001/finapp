@@ -41,7 +41,25 @@ export default function Dashboard() {
   const monthlyBudgetTotal = useMemo(() =>
     budgets.reduce((s, b) => s + b.amount * PERIOD_TO_MONTHLY[b.period], 0), [budgets])
 
-  // Group budget items by category, sum budgeted amounts, attach monthly spending.
+  // Normalize this month's spending per category: transactions linked to non-monthly
+  // budget items are scaled to their monthly equivalent (e.g. $120 annual → $10/mo)
+  // so the budget comparison reflects pace, not a lump-sum spike.
+  const normalizedSpending = useMemo(() => {
+    const map = {}
+    for (const t of transactions) {
+      if (t.amount >= 0 || t.is_transfer || !t.category_id) continue
+      const amt    = Math.abs(t.amount)
+      const period = t.budget_item_id ? t.budget_item_period : null
+      const factor = PERIOD_TO_MONTHLY[period] ?? 1
+      const value  = (period && factor < 1)
+        ? amt * factor
+        : amt
+      map[t.category_id] = (map[t.category_id] ?? 0) + value
+    }
+    return map
+  }, [transactions])
+
+  // Group budget items by category, sum budgeted amounts, attach normalized spending.
   // Sorted by utilisation % so the most critical categories surface first.
   const categoryBudgetGroups = useMemo(() => {
     const map = {}
@@ -56,11 +74,11 @@ export default function Dashboard() {
       map[key].budgeted += b.amount * (PERIOD_TO_MONTHLY[b.period] ?? 1)
     }
     return Object.values(map).map(group => {
-      const spent = byCategory.find(c => c.id === group.category_id)?.total ?? 0
+      const spent = normalizedSpending[group.category_id] ?? 0
       const pct   = group.budgeted > 0 ? Math.min(100, (spent / group.budgeted) * 100) : 0
       return { ...group, spent, pct }
     }).sort((a, b) => b.pct - a.pct)
-  }, [budgets, byCategory])
+  }, [budgets, normalizedSpending])
 
   const overBudget = categoryBudgetGroups.filter(g => g.pct >= 100).length
   const totalSpend  = useMemo(() => byCategory.reduce((s, c) => s + c.total, 0), [byCategory])
@@ -177,7 +195,13 @@ export default function Dashboard() {
         <div className="card">
           <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">Budget Progress</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-            {categoryBudgetGroups.map(g => <CategoryBudgetBar key={g.category_id ?? 'none'} group={g} />)}
+            {categoryBudgetGroups.map(g => (
+              <CategoryBudgetBar
+                key={g.category_id ?? 'none'}
+                group={g}
+                onClick={g.category_id ? () => navigate(`/transactions?month=${format(selectedMonth, 'yyyy-MM')}&category=${g.category_id}`) : undefined}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -199,11 +223,14 @@ function KpiCard({ label, value, icon: Icon, color }) {
   )
 }
 
-function CategoryBudgetBar({ group }) {
+function CategoryBudgetBar({ group, onClick }) {
   const over = group.pct >= 100
   const warn = group.pct >= 80 && !over
   return (
-    <div className="bg-slate-100/50 dark:bg-slate-800/50 rounded-lg p-3">
+    <div
+      className={`bg-slate-100/50 dark:bg-slate-800/50 rounded-lg p-3 ${onClick ? 'cursor-pointer hover:bg-slate-200/60 dark:hover:bg-slate-700/60 transition-colors' : ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-center justify-between gap-2 mb-1">
         <span className="flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300 min-w-0">
           <span className="shrink-0">{group.category_icon}</span>
