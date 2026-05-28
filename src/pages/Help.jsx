@@ -81,6 +81,17 @@ export default function Help() {
         <Tip>Enable Auto-Save in the header so your changes are saved automatically whenever you make edits.</Tip>
       </Section>
 
+      <Section icon={LayoutDashboard} title="Dashboard">
+        <p>The Dashboard gives you a snapshot of your finances with KPI cards, an income vs. expenses bar chart, a spending pie chart, and budget progress bars.</p>
+        <p>Use the <strong className="text-slate-800 dark:text-slate-200">Month / YTD / Year</strong> toggle at the top to change the view:</p>
+        <ul className="list-disc list-inside space-y-1 ml-1">
+          <li><strong className="text-slate-800 dark:text-slate-200">Month</strong> — navigate any calendar month using the arrows; budget targets show monthly equivalents</li>
+          <li><strong className="text-slate-800 dark:text-slate-200">YTD</strong> — always shows January 1 through today for the current year; budget targets are pro-rated to the months elapsed so far</li>
+          <li><strong className="text-slate-800 dark:text-slate-200">Year</strong> — navigate any year using the arrows; budget targets scale to the full year (or year-to-date if the current year is selected)</li>
+        </ul>
+        <Tip>Budget targets in all views respect each item's start and end dates — a budget that only runs part of the year is automatically pro-rated to the active months in the current window.</Tip>
+      </Section>
+
       <Section icon={Wallet} title="Accounts">
         <p>Accounts track where your money lives. Go to <strong className="text-slate-800 dark:text-slate-200">Accounts</strong> and click <strong className="text-slate-800 dark:text-slate-200">Add Account</strong> to create one.</p>
         <ul className="list-disc list-inside space-y-1 ml-1">
@@ -127,12 +138,23 @@ export default function Help() {
       <Section icon={PiggyBank} title="Budgets">
         <p>Budgets let you set spending targets per category — for both expenses and income. Go to <strong className="text-slate-800 dark:text-slate-200">Budgets</strong> and click <strong className="text-slate-800 dark:text-slate-200">Add Budget Item</strong>.</p>
         <ul className="list-disc list-inside space-y-1 ml-1">
-          <li>Choose a category and enter the budgeted amount and period (weekly, monthly, quarterly, semi-annual, or annual)</li>
+          <li>Choose a category, period (weekly, monthly, quarterly, semi-annual, or annual), amount, and optional start/end dates</li>
           <li>Toggle between <strong className="text-slate-800 dark:text-slate-200">Monthly</strong> and <strong className="text-slate-800 dark:text-slate-200">Annual</strong> view using the buttons at the top</li>
           <li>Expense progress bars turn yellow at 80% and red when over budget</li>
           <li>Click a category name to collapse or expand its detail — click a group header to collapse the whole group</li>
           <li>Click the arrow on any budget line item to expand it and see all matched transactions</li>
+          <li>Items with an end date show an <strong className="text-slate-800 dark:text-slate-200">ends [date]</strong> badge; items with a future start date show a <strong className="text-slate-800 dark:text-slate-200">starts [date]</strong> badge</li>
         </ul>
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Tracking Budget Changes Over Time</p>
+          <p>If a budget amount changes (e.g. a subscription price increase), you can track the history without losing old data using <strong className="text-slate-800 dark:text-slate-200">Add Row</strong>:</p>
+          <div className="space-y-2">
+            <Step n="1">Click the edit icon on the budget item whose amount is changing.</Step>
+            <Step n="2">Click <strong className="text-slate-800 dark:text-slate-200">Add Row</strong>. The current open-ended row automatically gets an end date set to the last day of the current period.</Step>
+            <Step n="3">A new row is added starting at the beginning of the next period. Enter the new amount and save.</Step>
+          </div>
+          <p>All rows sharing the same name, category, and period are shown together in the edit dialog, giving you a full history at a glance. Budget targets in the Dashboard are automatically pro-rated based on how many months each row was active in the current view window.</p>
+        </div>
         <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Income Budgets</p>
           <p>If any of your categories are marked as <strong className="text-slate-800 dark:text-slate-200">Income</strong>, you can create budget items for them to track expected earnings alongside expenses.</p>
