@@ -11,6 +11,14 @@ export const PERIOD_TO_MONTHLY = {
   annual:      1 / 12
 }
 
+export const PERIOD_TO_ANNUAL = {
+  weekly:      52.178,
+  monthly:     12,
+  quarterly:   4,
+  semi_annual: 2,
+  annual:      1
+}
+
 export const PERIOD_LABELS = {
   weekly:      'Weekly',
   monthly:     'Monthly',

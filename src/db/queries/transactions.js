@@ -117,6 +117,17 @@ export const getMonthlyTotals = (months = 12) =>
     ORDER BY month
   `)
 
+export const getYearMonthlyTotals = (year) =>
+  query(`
+    SELECT strftime('%Y-%m', date) as month,
+           SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expenses,
+           SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END)       as income
+    FROM transactions
+    WHERE strftime('%Y', date) = ?
+    GROUP BY month
+    ORDER BY month
+  `, [String(year)])
+
 export const findDuplicates = (accountId, date, amount, description) =>
   query(`SELECT id FROM transactions
          WHERE account_id=? AND date=? AND amount=? AND description=?

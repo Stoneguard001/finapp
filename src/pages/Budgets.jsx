@@ -56,6 +56,7 @@ export default function Budgets() {
   const now         = new Date()
   const currentYear = now.getFullYear()
   const month       = String(now.getMonth() + 1).padStart(2, '0')
+  const todayStr    = now.toISOString().slice(0, 10)
 
   const yearStart  = `${selectedYear}-01-01`
   const yearEnd    = `${selectedYear}-12-31`
@@ -233,6 +234,16 @@ export default function Budgets() {
                       : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
                     <span className="truncate">{item.name}</span>
                   </button>
+                  {item.end_date && (
+                    <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">
+                      ends {fmtDate(item.end_date)}
+                    </span>
+                  )}
+                  {!item.end_date && item.start_date > todayStr && (
+                    <span className="shrink-0 text-xs text-amber-500">
+                      starts {fmtDate(item.start_date)}
+                    </span>
+                  )}
                   <div className="flex items-center gap-2 ml-2 shrink-0">
                     {isConverted && (
                       <span className="text-sm text-slate-400 dark:text-slate-500">
@@ -441,6 +452,7 @@ export default function Budgets() {
       {editing !== null && (
         <BudgetModal
           budget={editing}
+          budgets={budgets}
           onClose={() => setEditing(null)}
           onSave={() => { setEditing(null); bump() }}
         />

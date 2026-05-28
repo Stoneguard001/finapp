@@ -3,66 +3,109 @@ import { useNavigate } from 'react-router-dom'
 import { TrendingDown, TrendingUp, Wallet, PiggyBank, ChevronLeft, ChevronRight } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
-import { getTransactions, getMonthlyTotals, getSpendingByCategory } from '@/db/queries/transactions'
+import { getTransactions, getMonthlyTotals, getYearMonthlyTotals, getSpendingByCategory } from '@/db/queries/transactions'
 import { getBudgets, PERIOD_TO_MONTHLY } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
 import { useTheme } from '@/context/ThemeContext'
 import { fmt } from '@/lib/fmt'
 
+// Returns the pro-rated budgeted amount for a budget item within a date window.
+// Counts the number of calendar months the budget overlaps with the window,
+// then multiplies by the monthly equivalent of the budget amount.
+function budgetedAmount(budget, windowStart, windowEnd) {
+  const effStart = (budget.start_date && budget.start_date > windowStart) ? budget.start_date : windowStart
+  const effEnd   = (budget.end_date   && budget.end_date   < windowEnd)   ? budget.end_date   : windowEnd
+  if (effStart > effEnd) return 0
+  const monthly = budget.amount * (PERIOD_TO_MONTHLY[budget.period] ?? 1)
+  const s = new Date(effStart)
+  const e = new Date(effEnd)
+  const months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()) + 1
+  return monthly * Math.max(0, months)
+}
+
 export default function Dashboard() {
+  const [view, setView]               = useState('month')
   const [selectedMonth, setSelectedMonth] = useState(new Date())
+  const [selectedYear, setSelectedYear]   = useState(new Date().getFullYear())
   const { dark } = useTheme()
   const navigate = useNavigate()
   const today = new Date()
+  const currentYear = today.getFullYear()
+
   const isCurrentMonth = isSameMonth(selectedMonth, today)
+  const isCurrentYear  = selectedYear === currentYear
 
   const monthStart = format(startOfMonth(selectedMonth), 'yyyy-MM-dd')
   const monthEnd   = format(endOfMonth(selectedMonth),   'yyyy-MM-dd')
+  const yearStart  = `${selectedYear}-01-01`
+  const yearEnd    = isCurrentYear ? format(today, 'yyyy-MM-dd') : `${selectedYear}-12-31`
+
+  const ytdStart = `${currentYear}-01-01`
+  const ytdEnd   = format(today, 'yyyy-MM-dd')
+
+  const activeStart = view === 'year' ? yearStart : view === 'ytd' ? ytdStart : monthStart
+  const activeEnd   = view === 'year' ? yearEnd   : view === 'ytd' ? ytdEnd   : monthEnd
 
   const { data: transactions = [] } = useQuery(
-    () => getTransactions({ startDate: monthStart, endDate: monthEnd, limit: 2000 }),
-    [monthStart]
+    () => getTransactions({ startDate: activeStart, endDate: activeEnd, limit: 5000 }),
+    [activeStart, activeEnd]
   )
-  const { data: monthly = [] }    = useQuery(() => getMonthlyTotals(6))
+  const { data: monthly = [] }       = useQuery(() => getMonthlyTotals(6))
+  const yearForChart = view === 'ytd' ? currentYear : selectedYear
+  const { data: yearlyMonthly = [] } = useQuery(
+    () => getYearMonthlyTotals(yearForChart),
+    [yearForChart]
+  )
   const { data: byCategory = [] } = useQuery(
-    () => getSpendingByCategory({ startDate: monthStart, endDate: monthEnd }),
-    [monthStart]
+    () => getSpendingByCategory({ startDate: activeStart, endDate: activeEnd }),
+    [activeStart, activeEnd]
   )
-  const { data: budgets = [] }    = useQuery(() => getBudgets())
+  const { data: budgets = [] } = useQuery(() => getBudgets())
 
-  const monthExpenses = useMemo(() =>
+  const totalExpenses = useMemo(() =>
     transactions.filter(t => t.amount < 0 && !t.is_transfer).reduce((s, t) => s + Math.abs(t.amount), 0),
     [transactions])
 
-  const monthIncome = useMemo(() =>
+  const totalIncome = useMemo(() =>
     transactions.filter(t => t.amount > 0 && !t.is_transfer).reduce((s, t) => s + t.amount, 0),
     [transactions])
 
-  const monthlyBudgetTotal = useMemo(() =>
-    budgets.reduce((s, b) => s + b.amount * PERIOD_TO_MONTHLY[b.period], 0), [budgets])
+  const budgetTotal = useMemo(() =>
+    budgets.reduce((s, b) => s + budgetedAmount(b, activeStart, activeEnd), 0),
+    [budgets, activeStart, activeEnd])
 
-  // Normalize this month's spending per category: transactions linked to non-monthly
-  // budget items are scaled to their monthly equivalent (e.g. $120 annual → $10/mo)
-  // so the budget comparison reflects pace, not a lump-sum spike.
+  const incomeCategoryIds = useMemo(() =>
+    new Set(budgets.filter(b => b.is_income).map(b => b.category_id)),
+    [budgets])
+
+  // Month view: normalize non-monthly budget items to monthly equivalent for pace comparison.
+  // Year view: raw spending — annual budget amounts are already the right scale.
+  // Positive transactions on expense categories (refunds, rebates) net against spending.
   const normalizedSpending = useMemo(() => {
     const map = {}
     for (const t of transactions) {
       if (t.is_transfer || !t.category_id) continue
       if (t.amount < 0) {
-        const amt    = Math.abs(t.amount)
-        const period = t.budget_item_id ? t.budget_item_period : null
-        const factor = PERIOD_TO_MONTHLY[period] ?? 1
-        const value  = (period && factor < 1) ? amt * factor : amt
-        map[t.category_id] = (map[t.category_id] ?? 0) + value
+        const amt = Math.abs(t.amount)
+        if (view === 'year' || view === 'ytd') {
+          map[t.category_id] = (map[t.category_id] ?? 0) + amt
+        } else {
+          const period = t.budget_item_id ? t.budget_item_period : null
+          const factor = PERIOD_TO_MONTHLY[period] ?? 1
+          const value  = (period && factor < 1) ? amt * factor : amt
+          map[t.category_id] = (map[t.category_id] ?? 0) + value
+        }
       } else if (t.amount > 0) {
-        map[t.category_id] = (map[t.category_id] ?? 0) + t.amount
+        if (incomeCategoryIds.has(t.category_id)) {
+          map[t.category_id] = (map[t.category_id] ?? 0) + t.amount
+        } else {
+          map[t.category_id] = (map[t.category_id] ?? 0) - t.amount
+        }
       }
     }
     return map
-  }, [transactions])
+  }, [transactions, view, incomeCategoryIds])
 
-  // Group budget items by category, sum budgeted amounts, attach normalized spending.
-  // Sorted by utilisation % so the most critical categories surface first.
   const categoryBudgetGroups = useMemo(() => {
     const map = {}
     for (const b of budgets) {
@@ -74,20 +117,29 @@ export default function Dashboard() {
         is_income:     b.is_income ?? 0,
         budgeted: 0
       }
-      map[key].budgeted += b.amount * (PERIOD_TO_MONTHLY[b.period] ?? 1)
+      map[key].budgeted += budgetedAmount(b, activeStart, activeEnd)
     }
     return Object.values(map).map(group => {
-      const spent = normalizedSpending[group.category_id] ?? 0
+      const spent = Math.max(0, normalizedSpending[group.category_id] ?? 0)
       const pct   = group.budgeted > 0 ? Math.min(100, (spent / group.budgeted) * 100) : 0
       return { ...group, spent, pct }
     }).sort((a, b) => b.pct - a.pct)
-  }, [budgets, normalizedSpending])
+  }, [budgets, normalizedSpending, activeStart, activeEnd])
 
   const overBudget = categoryBudgetGroups.filter(g => g.pct >= 100).length
-  const totalSpend  = useMemo(() => byCategory.reduce((s, c) => s + c.total, 0), [byCategory])
+  const totalSpend = useMemo(() => byCategory.reduce((s, c) => s + c.total, 0), [byCategory])
+
+  // Format year chart months as abbreviated names (Jan, Feb, …)
+  const yearChartData = useMemo(() =>
+    yearlyMonthly.map(row => ({
+      ...row,
+      month: format(new Date(row.month + '-15'), 'MMM')
+    })),
+    [yearlyMonthly]
+  )
 
   function handleCategoryClick(cat) {
-    if (!cat.id) return
+    if (!cat.id || view === 'year' || view === 'ytd') return
     navigate(`/transactions?month=${format(selectedMonth, 'yyyy-MM')}&category=${cat.id}`)
   }
 
@@ -99,43 +151,100 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-6">
-      {/* Month navigation */}
-      <div className="flex items-center gap-2">
-        <button onClick={() => setSelectedMonth(m => subMonths(m, 1))} className="btn-ghost p-2.5" title="Previous month">
-          <ChevronLeft size={18} />
-        </button>
-        <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
-          {format(selectedMonth, 'MMMM yyyy')}
-        </h1>
-        <button
-          onClick={() => setSelectedMonth(m => addMonths(m, 1))}
-          className="btn-ghost p-2.5"
-          disabled={isCurrentMonth}
-          title="Next month"
-        >
-          <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-300 dark:text-slate-700' : ''} />
-        </button>
+      {/* View toggle + navigation */}
+      <div className="flex items-center gap-4 flex-wrap">
+        <div className="flex rounded-lg bg-slate-100 dark:bg-slate-800 p-0.5 gap-0.5">
+          {['month', 'ytd', 'year'].map(v => (
+            <button
+              key={v}
+              onClick={() => setView(v)}
+              className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${
+                view === v
+                  ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm'
+                  : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300'
+              }`}
+            >
+              {v === 'month' ? 'Month' : v === 'ytd' ? 'YTD' : 'Year'}
+            </button>
+          ))}
+        </div>
+
+        {view === 'month' ? (
+          <div className="flex items-center gap-2">
+            <button onClick={() => setSelectedMonth(m => subMonths(m, 1))} className="btn-ghost p-2.5" title="Previous month">
+              <ChevronLeft size={18} />
+            </button>
+            <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
+              {format(selectedMonth, 'MMMM yyyy')}
+            </h1>
+            <button
+              onClick={() => setSelectedMonth(m => addMonths(m, 1))}
+              className="btn-ghost p-2.5"
+              disabled={isCurrentMonth}
+              title="Next month"
+            >
+              <ChevronRight size={18} className={isCurrentMonth ? 'text-slate-300 dark:text-slate-700' : ''} />
+            </button>
+          </div>
+        ) : view === 'ytd' ? (
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">
+            {currentYear} YTD
+          </h1>
+        ) : (
+          <div className="flex items-center gap-2">
+            <button onClick={() => setSelectedYear(y => y - 1)} className="btn-ghost p-2.5" title="Previous year">
+              <ChevronLeft size={18} />
+            </button>
+            <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
+              {selectedYear}{isCurrentYear ? ' YTD' : ''}
+            </h1>
+            <button
+              onClick={() => setSelectedYear(y => y + 1)}
+              className="btn-ghost p-2.5"
+              disabled={isCurrentYear}
+              title="Next year"
+            >
+              <ChevronRight size={18} className={isCurrentYear ? 'text-slate-300 dark:text-slate-700' : ''} />
+            </button>
+          </div>
+        )}
       </div>
 
       {/* KPI cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard label="Spent"         value={fmt(monthExpenses)}      icon={TrendingDown} color="text-red-400"   />
-        <KpiCard label="Income"        value={fmt(monthIncome)}         icon={TrendingUp}   color="text-brand-400" />
-        <KpiCard label="Monthly Budget" value={fmt(monthlyBudgetTotal)} icon={PiggyBank}    color="text-blue-400"  />
-        <KpiCard label="Over Budget"   value={`${overBudget} ${overBudget === 1 ? 'category' : 'categories'}`} icon={Wallet}
-          color={overBudget > 0 ? 'text-red-400' : 'text-brand-400'} />
+        <KpiCard label="Spent"  value={fmt(totalExpenses)} icon={TrendingDown} color="text-red-400"   />
+        <KpiCard label="Income" value={fmt(totalIncome)}   icon={TrendingUp}   color="text-brand-400" />
+        <KpiCard
+          label={view === 'month' ? 'Monthly Budget' : view === 'ytd' ? 'YTD Budget' : 'Annual Budget'}
+          value={fmt(budgetTotal)}
+          icon={PiggyBank}
+          color="text-blue-400"
+        />
+        <KpiCard
+          label="Over Budget"
+          value={`${overBudget} ${overBudget === 1 ? 'category' : 'categories'}`}
+          icon={Wallet}
+          color={overBudget > 0 ? 'text-red-400' : 'text-brand-400'}
+        />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly bar chart */}
+        {/* Bar chart */}
         <div className="card">
-          <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">Income vs Expenses (6 months)</h2>
+          <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">
+            {view === 'ytd'
+              ? `Income vs Expenses (${currentYear} YTD)`
+              : view === 'year'
+              ? `Income vs Expenses (${selectedYear}${isCurrentYear ? ' YTD' : ''})`
+              : 'Income vs Expenses (6 months)'}
+          </h2>
           <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={monthly} barGap={4}>
+            <BarChart data={view === 'month' ? monthly : yearChartData} barGap={4}>
               <XAxis dataKey="month" tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false}
                 tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle} formatter={v => [`$${v.toFixed(2)}`, undefined]} />
+              <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle}
+                formatter={v => [`$${v.toFixed(2)}`, undefined]} />
               <Bar dataKey="income"   fill="#22c55e" radius={[4, 4, 0, 0]} name="Income" />
               <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expenses" />
             </BarChart>
@@ -146,7 +255,9 @@ export default function Dashboard() {
         <div className="card">
           <h2 className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">Spending by Category</h2>
           {byCategory.length === 0 ? (
-            <p className="text-slate-400 dark:text-slate-600 text-sm text-center py-12">No spending data for this month</p>
+            <p className="text-slate-400 dark:text-slate-600 text-sm text-center py-12">
+              No spending data for this {view === 'month' ? 'month' : 'year'}
+            </p>
           ) : (
             <div className="flex flex-col items-center sm:flex-row gap-4">
               <div className="w-[180px] h-[180px] flex-shrink-0">
@@ -157,7 +268,7 @@ export default function Dashboard() {
                       {byCategory.map((cat, i) => (
                         <Cell key={cat.id ?? i} fill={cat.color ?? '#475569'}
                           onClick={() => handleCategoryClick(cat)}
-                          style={{ cursor: cat.id ? 'pointer' : 'default' }} />
+                          style={{ cursor: cat.id && view === 'month' ? 'pointer' : 'default' }} />
                       ))}
                     </Pie>
                     <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle}
@@ -172,12 +283,13 @@ export default function Dashboard() {
               <div className="flex-1 min-w-0 space-y-1.5">
                 {byCategory.map(cat => {
                   const pct = totalSpend > 0 ? Math.round(cat.total / totalSpend * 100) : 0
+                  const clickable = cat.id && view === 'month'
                   return (
                     <div
                       key={cat.id ?? 'uncategorized'}
                       onClick={() => handleCategoryClick(cat)}
                       className={`flex items-center gap-1.5 text-xs rounded px-1 -mx-1 py-0.5 transition-colors
-                        ${cat.id ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800' : ''}`}
+                        ${clickable ? 'cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800' : ''}`}
                     >
                       <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: cat.color ?? '#475569' }} />
                       <span>{cat.icon ?? '❓'}</span>
@@ -202,7 +314,9 @@ export default function Dashboard() {
               <CategoryBudgetBar
                 key={g.category_id ?? 'none'}
                 group={g}
-                onClick={g.category_id ? () => navigate(`/transactions?month=${format(selectedMonth, 'yyyy-MM')}&category=${g.category_id}`) : undefined}
+                onClick={g.category_id && view === 'month'
+                  ? () => navigate(`/transactions?month=${format(selectedMonth, 'yyyy-MM')}&category=${g.category_id}`)
+                  : undefined}
               />
             ))}
           </div>
