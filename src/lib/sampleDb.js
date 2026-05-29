@@ -62,6 +62,35 @@ export async function generateSampleDb() {
   }
 
   const now = new Date()
+
+  // Budget start date — first day of the oldest sample month
+  const budgetStart = new Date(now.getFullYear(), now.getMonth() - 2, 1)
+    .toISOString().slice(0, 10)
+
+  // Mark Income category so income budget tracking works
+  db.run(`UPDATE categories SET is_income=1 WHERE name='Income'`)
+
+  // Fill in the seed placeholder budgets with amounts matching the sample transactions
+  db.run(`UPDATE budgets SET amount=1025, start_date=? WHERE name='Housing'`,        [budgetStart])
+  db.run(`UPDATE budgets SET amount=75,   start_date=? WHERE name='Groceries'`,      [budgetStart])
+  db.run(`UPDATE budgets SET amount=25,   start_date=? WHERE name='Dining Out'`,     [budgetStart])
+  db.run(`UPDATE budgets SET amount=80,   start_date=? WHERE name='Utilities'`,      [budgetStart])
+  db.run(`UPDATE budgets SET amount=85,   start_date=? WHERE name='Transportation'`, [budgetStart])
+  db.run(`UPDATE budgets SET amount=26,   start_date=? WHERE name='Subscriptions'`,  [budgetStart])
+  db.run(`UPDATE budgets SET amount=40,   start_date=? WHERE name='Healthcare'`,     [budgetStart])
+  db.run(`UPDATE budgets SET amount=30,   start_date=? WHERE name='Personal Care'`,  [budgetStart])
+
+  // Add budgets for categories the seed doesn't cover
+  const addBudget = (name, cat, amount, period) =>
+    db.run(`INSERT INTO budgets (name, category_id, amount, period, start_date) VALUES (?,?,?,?,?)`,
+      [name, cats[cat], amount, period, budgetStart])
+
+  addBudget('Internet/Phone', 'Internet/Phone', 60,   'monthly')
+  addBudget('Insurance',      'Insurance',      85,   'monthly')
+  addBudget('Shopping',       'Shopping',       60,   'monthly')
+  addBudget('Entertainment',  'Entertainment',  40,   'monthly')
+  addBudget('Salary',         'Income',         3950, 'monthly')
+
   for (let i = 2; i >= 0; i--) {
     const d     = new Date(now.getFullYear(), now.getMonth() - i, 1)
     const year  = d.getFullYear()
