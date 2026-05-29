@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Search, Pencil, Trash2, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Search, Pencil, Trash2, X, ChevronLeft, ChevronRight, FolderX, PiggyBank } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
 import { getTransactions, deleteTransaction, updateTransaction } from '@/db/queries/transactions'
 import { getCategories } from '@/db/queries/categories'
@@ -32,7 +32,9 @@ export default function Transactions() {
   const [filterAccount, setFilterAccount] = useState('')
   const [filterCategory, setFilterCategory] = useState(() => searchParams.get('category') ?? '')
   const [filterGroup, setFilterGroup]     = useState('')
-  const [filterTag, setFilterTag]         = useState(null)
+  const [filterTag, setFilterTag]               = useState(null)
+  const [filterUncategorized, setFilterUncategorized] = useState(false)
+  const [filterUnbudgeted, setFilterUnbudgeted]       = useState(false)
   const [editing, setEditing]             = useState(null)
   const [refresh, setRefresh]             = useState(0)
   const bump = useCallback(() => setRefresh(r => r + 1), [])
@@ -95,10 +97,12 @@ export default function Transactions() {
   }, [filterGroup, categories])
 
   const filtered = transactions.filter(t => {
-    if (filterAccount  && t.account_id  !== Number(filterAccount))  return false
-    if (filterGroup    && (!t.category_id || !groupCatIds.has(t.category_id))) return false
-    if (filterCategory && t.category_id !== Number(filterCategory)) return false
-    if (filterTag      && !t.tags.some(tag => tag.id === filterTag)) return false
+    if (filterAccount        && t.account_id  !== Number(filterAccount))  return false
+    if (filterGroup          && (!t.category_id || !groupCatIds.has(t.category_id))) return false
+    if (filterCategory       && t.category_id !== Number(filterCategory)) return false
+    if (filterTag            && !t.tags.some(tag => tag.id === filterTag)) return false
+    if (filterUncategorized  && t.category_id) return false
+    if (filterUnbudgeted     && !(t.category_id && !t.is_transfer && !t.budget_item_name && !t.implied_budget_name)) return false
     if (search) {
       const q = search.toLowerCase()
       const match =
@@ -156,13 +160,15 @@ export default function Transactions() {
     bump()
   }
 
-  const activeFilters = [filterAccount, filterGroup, filterCategory, filterTag].filter(Boolean).length
+  const activeFilters = [filterAccount, filterGroup, filterCategory, filterTag, filterUncategorized, filterUnbudgeted].filter(Boolean).length
 
   function clearFilters() {
     setFilterAccount('')
     setFilterGroup('')
     setFilterCategory('')
     setFilterTag(null)
+    setFilterUncategorized(false)
+    setFilterUnbudgeted(false)
     setSearch('')
   }
 
@@ -280,23 +286,44 @@ export default function Transactions() {
         )}
       </div>
 
-      {/* Tag filter */}
-      {tags.length > 0 && (
-        <div className="flex flex-wrap gap-2 items-center">
-          <span className="text-xs text-slate-400 dark:text-slate-500">Tags:</span>
-          {tags.map(tag => (
-            <button
-              key={tag.id}
-              onClick={() => setFilterTag(filterTag === tag.id ? null : tag.id)}
-              className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-white transition-opacity"
-              style={{ background: tag.color, opacity: filterTag && filterTag !== tag.id ? 0.35 : 1 }}
-            >
-              {tag.name}
-              {filterTag === tag.id && <X size={10} />}
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Quick filters + tag filter */}
+      <div className="flex flex-wrap gap-2 items-center">
+        {[
+          { key: 'uncategorized', icon: FolderX, title: 'Show uncategorized', active: filterUncategorized, set: setFilterUncategorized },
+          { key: 'unbudgeted',    icon: PiggyBank,  title: 'Show unbudgeted',    active: filterUnbudgeted,    set: setFilterUnbudgeted    },
+        ].map(({ key, icon: Icon, title, active, set }) => (
+          <button
+            key={key}
+            onClick={() => set(v => !v)}
+            title={title}
+            className={`p-1.5 rounded border transition-colors ${
+              active
+                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-700 hover:text-slate-600 dark:hover:text-slate-300'
+            }`}
+          >
+            <Icon size={13} />
+          </button>
+        ))}
+
+        {tags.length > 0 && (
+          <>
+            <span className="w-px h-4 bg-slate-200 dark:bg-slate-700 shrink-0" />
+            <span className="text-xs text-slate-400 dark:text-slate-500">Tags:</span>
+            {tags.map(tag => (
+              <button
+                key={tag.id}
+                onClick={() => setFilterTag(filterTag === tag.id ? null : tag.id)}
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-white transition-opacity"
+                style={{ background: tag.color, opacity: filterTag && filterTag !== tag.id ? 0.35 : 1 }}
+              >
+                {tag.name}
+                {filterTag === tag.id && <X size={10} />}
+              </button>
+            ))}
+          </>
+        )}
+      </div>
 
       {/* Bulk action bar */}
       {selectedIds.size > 0 && (
@@ -388,9 +415,11 @@ export default function Transactions() {
                   {fmtDate(tx.date)}
                   <div className="block sm:hidden mt-1">
                     <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
-                    {tx.budget_item_name && (
-                      <div className="mt-0.5 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
-                    )}
+                    {tx.budget_item_name
+                      ? <div className="mt-0.5 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
+                      : tx.implied_budget_name
+                      ? <div className="mt-0.5 text-[10px] truncate text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</div>
+                      : null}
                   </div>
                 </td>
                 <td className="px-2 sm:px-4 py-3 max-w-xs min-w-0 align-top">
@@ -418,9 +447,11 @@ export default function Transactions() {
                 </td>
                 <td className="hidden sm:table-cell px-4 py-3">
                   <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
-                  {tx.budget_item_name && (
-                    <div className="mt-1 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
-                  )}
+                  {tx.budget_item_name
+                    ? <div className="mt-1 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
+                    : tx.implied_budget_name
+                    ? <div className="mt-1 text-[10px] truncate text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</div>
+                    : null}
                 </td>
                 <td className={`hidden sm:table-cell px-4 py-3 text-right font-mono font-medium whitespace-nowrap ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-800 dark:text-slate-200'}`}>
                   {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}

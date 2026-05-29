@@ -33,6 +33,14 @@ export const getTransactions = ({ accountId, categoryId, tagId, startDate, endDa
            b.name   as budget_item_name,
            b.period as budget_item_period,
            bc.color as budget_item_color,
+           CASE WHEN t.budget_item_id IS NULL THEN (
+             SELECT ib.name FROM budgets ib
+             WHERE ib.category_id = t.category_id
+               AND ib.archived = 0
+               AND ib.start_date <= t.date
+               AND (ib.end_date IS NULL OR ib.end_date >= t.date)
+             ORDER BY ib.start_date DESC LIMIT 1
+           ) END as implied_budget_name,
            GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw
     FROM transactions t
     LEFT JOIN accounts        a  ON a.id  = t.account_id
