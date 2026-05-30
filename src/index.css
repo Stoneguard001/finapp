@@ -2,15 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --ek-ink: oklch(0.3 0.045 248); /* navy hull   #213047 */
+  --ek-sea: oklch(0.57 0.1 215); /* teal sails  #2b89a1 */
+  --ek-gold: oklch(0.79 0.135 86); /* sun         #dfa72c */
+  --ek-paper: oklch(0.987 0.006 220); /* cool white            */
+}
+
 @layer base {
-  * { box-sizing: border-box; }
-  body {
-    font-family: system-ui, -apple-system, sans-serif;
-    @apply bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100;
+  * {
+    box-sizing: border-box;
   }
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+  body {
+    font-family:
+      system-ui,
+      -apple-system,
+      sans-serif;
+    @apply bg-slate-50 text-ink-700 dark:bg-ink-900 dark:text-slate-100;
+  }
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #2b3d54;
+    border-radius: 3px;
+  }
 }
 
 @layer components {

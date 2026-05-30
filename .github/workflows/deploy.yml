@@ -38,7 +38,7 @@ jobs:
 
       - name: Deploy app root files (no cache)
         run: |
-          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }}/finapp/ \
+          aws s3 sync dist/ s3://${{ secrets.AWS_S3_BUCKET }}/ \
             --exclude "assets/*" \
             --cache-control "public, max-age=0, must-revalidate" \
             --delete

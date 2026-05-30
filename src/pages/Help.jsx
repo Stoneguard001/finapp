@@ -51,7 +51,7 @@ export default function Help() {
         <HelpCircle size={28} className="text-brand-500" />
         <div>
           <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">Help &amp; Guide</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Everything you need to get started with FinApp</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Everything you need to get started with EvenKeel</p>
         </div>
       </div>
 
@@ -71,7 +71,7 @@ export default function Help() {
       </div>
 
       <Section icon={LayoutDashboard} title="Getting Started">
-        <p>FinApp stores all your data in a single <strong className="text-slate-800 dark:text-slate-200">.db file</strong> on your device — nothing is sent to a server.</p>
+        <p>EvenKeel stores all your data in a single <strong className="text-slate-800 dark:text-slate-200">.db file</strong> on your device — nothing is sent to a server.</p>
         <div className="space-y-2">
           <Step n="1">On the Welcome screen, click <strong className="text-slate-800 dark:text-slate-200">New Database</strong> to create a fresh file, or <strong className="text-slate-800 dark:text-slate-200">Open Database</strong> to load an existing one.</Step>
           <Step n="2">Set up your <strong className="text-slate-800 dark:text-slate-200">Accounts</strong> first — these represent your bank accounts, credit cards, or investment accounts.</Step>
@@ -129,7 +129,7 @@ export default function Help() {
         <p>Go to <strong className="text-slate-800 dark:text-slate-200">Import</strong> and drop a CSV, Excel, or PDF file exported from your bank.</p>
         <div className="space-y-2">
           <Step n="1">Upload your file. For PDFs, map the columns (date, description, amount) to the correct fields.</Step>
-          <Step n="2">Review the preview table. FinApp auto-assigns categories based on your Rules — you can override any row before confirming.</Step>
+          <Step n="2">Review the preview table. EvenKeel auto-assigns categories based on your Rules — you can override any row before confirming.</Step>
           <Step n="3">Click <strong className="text-slate-800 dark:text-slate-200">Save as Rule</strong> on any row to create a permanent auto-categorization rule for similar transactions in the future.</Step>
           <Step n="4">Click <strong className="text-slate-800 dark:text-slate-200">Import</strong> to confirm. Duplicate transactions (same account, date, amount, description) are flagged and skipped.</Step>
         </div>
@@ -169,7 +169,7 @@ export default function Help() {
 
       <Section icon={Link} title="Linking Transactions to Budget Items">
         <p>
-          By default, FinApp matches transactions to budget items by category. You can also <strong className="text-slate-800 dark:text-slate-200">explicitly link</strong> a transaction to a specific budget item — this is especially useful for non-monthly budgets like annual insurance premiums.
+          By default, EvenKeel matches transactions to budget items by category. You can also <strong className="text-slate-800 dark:text-slate-200">explicitly link</strong> a transaction to a specific budget item — this is especially useful for non-monthly budgets like annual insurance premiums.
         </p>
         <div className="space-y-2">
           <Step n="1">Open a transaction by clicking it in the Transactions list.</Step>
@@ -210,7 +210,7 @@ export default function Help() {
           className="inline-flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-brand-500 dark:hover:text-brand-400 transition-colors"
         >
           <Info size={13} />
-          About FinApp &amp; source code
+          About EvenKeel &amp; source code
         </RouterLink>
       </div>
     </div>

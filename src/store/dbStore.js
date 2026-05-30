@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { initDatabase, exportDatabase, closeDatabase, setOnWrite } from '@/db/database'
 
-const LS_KEY = 'finapp_autosave'
+const LS_KEY = 'evenkeel_autosave'
 
 let _saveTimer = null
 function scheduleAutoSave(saveFn) {
@@ -32,7 +32,7 @@ export const useDbStore = create((set, get) => {
         const date = new Date().toISOString().slice(0, 10)
         try {
           const handle = await window.showSaveFilePicker({
-            suggestedName: `finapp-${date}.sqlite`,
+            suggestedName: `evenkeel-${date}.sqlite`,
             types: [{ description: 'SQLite Database', accept: { 'application/x-sqlite3': ['.sqlite', '.db'] } }]
           })
           const data = exportDatabase()
@@ -92,7 +92,7 @@ export const useDbStore = create((set, get) => {
       if ('showSaveFilePicker' in window) {
         try {
           const handle = await window.showSaveFilePicker({
-            suggestedName: `finapp-${date}.sqlite`,
+            suggestedName: `evenkeel-${date}.sqlite`,
             types: [{ description: 'SQLite Database', accept: { 'application/x-sqlite3': ['.sqlite', '.db'] } }]
           })
           const writable = await handle.createWritable()
@@ -109,7 +109,7 @@ export const useDbStore = create((set, get) => {
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = `finapp-${date}.sqlite`
+      a.download = `evenkeel-${date}.sqlite`
       a.click()
       URL.revokeObjectURL(url)
     },
