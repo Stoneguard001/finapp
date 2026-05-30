@@ -1,24 +1,26 @@
 import {
-  Info,
   Github,
   Heart,
   Database,
   Shield,
   ExternalLink,
 } from "lucide-react";
+import markIron from "@/assets/mark-iron.svg";
+import markWhite from "@/assets/mark-white.svg";
 
 const GITHUB_URL = "https://github.com/Stoneguard001/finapp";
 const KOFI_URL = "https://ko-fi.com/philallion0979";
-const HOSTED_URL = "https://stoneguardian.com/finapp/";
+const HOSTED_URL = "https://evenkeel.online";
 
 export default function About() {
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
       <div className="flex items-center gap-3 mb-6">
-        <Info size={28} className="text-brand-500" />
+        <img src={markIron} alt="EvenKeel" className="w-9 h-9 dark:hidden" />
+        <img src={markWhite} alt="EvenKeel" className="w-9 h-9 hidden dark:block" />
         <div>
-          <h1 className="text-xl font-bold text-slate-900 dark:text-slate-100">
-            About FinApp
+          <h1 className="text-xl font-bold tracking-tight">
+            About <span className="text-slate-900 dark:text-slate-100">Even</span><span className="text-brand-500">Keel</span>
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">
             Open source personal finance, entirely on your device
@@ -31,10 +33,10 @@ export default function About() {
           <Database size={20} className="text-brand-500 flex-shrink-0 mt-0.5" />
           <div className="space-y-1">
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              What is FinApp?
+              What is EvenKeel?
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              FinApp is a fully local budgeting app. Your data lives in a{" "}
+              EvenKeel is a fully local budgeting app. Your data lives in a{" "}
               <strong className="text-slate-800 dark:text-slate-200">
                 .sqlite file on your own machine
               </strong>{" "}
@@ -64,7 +66,7 @@ export default function About() {
           Live site
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          The live site is available at stoneguardian.com — no install required.
+          The live site is available at evenkeel.online — no install required.
           Your data stays entirely in your browser; nothing is sent to the
           server.
         </p>
@@ -84,7 +86,7 @@ export default function About() {
           Source &amp; feedback
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          FinApp is open source. Bug reports, feature requests, and pull
+          EvenKeel is open source. Bug reports, feature requests, and pull
           requests are welcome on GitHub.
         </p>
         <a
@@ -103,7 +105,7 @@ export default function About() {
           Support development
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          FinApp is free and always will be. If it saves you money (or at least
+          EvenKeel is free and always will be. If it saves you money (or at least
           helps you track it), a coffee is appreciated but never expected.
         </p>
         <a

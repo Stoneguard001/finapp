@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Generates a sample FinApp database with ~3 months of realistic transactions.
+ * Generates a sample EvenKeel database with ~3 months of realistic transactions.
  * Usage: node scripts/generate-sample-db.js [output.sqlite]
  */
 import { readFileSync, writeFileSync } from 'fs'

@@ -26,18 +26,18 @@ jobs:
       - name: Package dist
         run: |
           cd dist
-          zip -r ../finapp-${{ github.ref_name }}.zip .
+          zip -r ../evenkeel-${{ github.ref_name }}.zip .
           cd ..
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: finapp-${{ github.ref_name }}.zip
+          files: evenkeel-${{ github.ref_name }}.zip
           generate_release_notes: true
           body: |
             ## Installation
 
-            1. Download `finapp-${{ github.ref_name }}.zip` below
+            1. Download `evenkeel-${{ github.ref_name }}.zip` below
             2. Extract the contents to your web server's document root (or a subdirectory)
             3. **Required:** configure your web server to send these headers on every response:
                ```

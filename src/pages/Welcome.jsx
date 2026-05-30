@@ -1,7 +1,8 @@
 import { useRef } from 'react'
-import { FolderOpen, FilePlus, Database, HelpCircle, Sparkles } from 'lucide-react'
+import { FolderOpen, FilePlus, HelpCircle, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useDbStore } from '@/store/dbStore'
+import appIcon from '@/assets/app-icon.svg'
 
 export default function Welcome() {
   const { openNew, openFile, openFileHandle } = useDbStore()
@@ -31,10 +32,10 @@ export default function Welcome() {
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6">
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-brand-900/50 mb-4">
-            <Database size={32} className="text-brand-400" />
-          </div>
-          <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100">FinApp</h1>
+          <img src={appIcon} alt="EvenKeel" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
+          <h1 className="text-3xl font-bold tracking-tight">
+            <span className="text-slate-900 dark:text-slate-100">Even</span><span className="text-brand-500">Keel</span>
+          </h1>
           <p className="mt-2 text-slate-500 dark:text-slate-400">Personal budgeting — your data stays yours.</p>
         </div>
 

@@ -1,13 +1,12 @@
 {
-  "name": "finapp",
+  "name": "evenkeel",
   "version": "1.0.8",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "build:site": "vite build --base=/finapp/",
-    "preview": "vite preview",
+"preview": "vite preview",
     "lint": "eslint src --ext .js,.jsx",
     "generate-sample": "node scripts/generate-sample-db.js"
   },

@@ -160,9 +160,9 @@ export default function Budgets() {
       : over  ? `${fmt(Math.abs(remaining))} over`        : `${fmt(remaining)} left`
 
     // For income, receiving more than expected is fine — no warning/red states
-    const barColor = isIncome || !over
-      ? pct >= 80 && !isIncome ? 'bg-yellow-500' : 'bg-brand-500'
-      : 'bg-red-500'
+    const barColor = isIncome
+      ? over ? 'bg-brand-500' : 'bg-green-500'
+      : over ? 'bg-red-500' : pct >= 80 ? 'bg-yellow-500' : 'bg-green-500'
     const actColor = isIncome ? 'text-slate-500'
       : over ? 'text-red-400 font-medium' : pct >= 80 ? 'text-yellow-500 font-medium' : 'text-slate-500'
     const remColor = over && !isIncome ? 'text-red-400' : 'text-slate-400 dark:text-slate-500'
