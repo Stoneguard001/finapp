@@ -177,7 +177,7 @@ export function downloadSampleDb() {
     const url  = URL.createObjectURL(blob)
     const a    = document.createElement('a')
     a.href     = url
-    a.download = 'finapp-sample.sqlite'
+    a.download = 'evenkeel-sample.sqlite'
     a.click()
     URL.revokeObjectURL(url)
   })

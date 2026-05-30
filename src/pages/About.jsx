@@ -10,7 +10,7 @@ import markWhite from "@/assets/mark-white.svg";
 
 const GITHUB_URL = "https://github.com/Stoneguard001/finapp";
 const KOFI_URL = "https://ko-fi.com/philallion0979";
-const HOSTED_URL = "https://stoneguardian.com/finapp/";
+const HOSTED_URL = "https://evenkeel.online";
 
 export default function About() {
   return (
@@ -66,7 +66,7 @@ export default function About() {
           Live site
         </h2>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          The live site is available at stoneguardian.com — no install required.
+          The live site is available at evenkeel.online — no install required.
           Your data stays entirely in your browser; nothing is sent to the
           server.
         </p>
