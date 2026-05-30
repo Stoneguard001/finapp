@@ -5,6 +5,8 @@ import {
   Upload, Tag, ListFilter, HelpCircle, Info, ChevronLeft, ChevronRight, X
 } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
+import markIron from '@/assets/mark-iron.svg'
+import markWhite from '@/assets/mark-white.svg'
 
 const NAV = [
   { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard' },
@@ -47,9 +49,15 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
             collapsed ? 'md:justify-center md:px-0' : ''
           }`}
         >
-          <span className={`flex-1 text-lg font-bold text-brand-500 tracking-tight ${collapsed ? 'md:hidden' : ''}`}>
-            FinApp
-          </span>
+          {collapsed
+            ? <img src={dark ? markWhite : markIron} alt="EvenKeel" className="hidden md:block w-7 h-7" />
+            : <span className="flex-1 flex items-center gap-2">
+                <img src={dark ? markWhite : markIron} alt="" className="w-6 h-6 flex-shrink-0" />
+                <span className="text-lg font-bold tracking-tight leading-none">
+                  <span className="text-slate-900 dark:text-slate-100">Even</span><span className="text-brand-500">Keel</span>
+                </span>
+              </span>
+          }
           {/* Mobile close button */}
           <button
             onClick={onMobileClose}

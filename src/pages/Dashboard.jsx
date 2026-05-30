@@ -346,8 +346,8 @@ function CategoryBudgetBar({ group, onClick }) {
   const warn = group.pct >= 80 && !over && !isIncome
 
   const barColor = isIncome
-    ? 'bg-brand-500'
-    : over ? 'bg-red-500' : warn ? 'bg-yellow-500' : 'bg-brand-500'
+    ? over ? 'bg-brand-500' : 'bg-green-500'
+    : over ? 'bg-red-500' : warn ? 'bg-yellow-500' : 'bg-green-500'
 
   const subline = isIncome
     ? over

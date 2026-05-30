@@ -10,14 +10,14 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icons/*.png'],
       manifest: {
-        name: 'FinApp - Personal Budget Tracker',
-        short_name: 'FinApp',
-        description: 'Simple, private budgeting app — your data stays yours',
-        theme_color: '#1e293b',
-        background_color: '#0f172a',
+        name: 'EvenKeel - Personal Budget Tracker',
+        short_name: 'EvenKeel',
+        description: 'Simple, private budgeting — your data stays yours',
+        theme_color: '#213047',
+        background_color: '#213047',
         display: 'standalone',
         icons: [
-          { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
+          { src: 'icons/icon-180.png', sizes: '180x180', type: 'image/png' },
           { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' }
         ]
       },
