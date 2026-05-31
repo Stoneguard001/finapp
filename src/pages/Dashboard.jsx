@@ -19,7 +19,7 @@ function budgetedAmount(budget, windowStart, windowEnd) {
   const monthly = budget.amount * (PERIOD_TO_MONTHLY[budget.period] ?? 1)
   const s = new Date(effStart)
   const e = new Date(effEnd)
-  const months = (e.getFullYear() - s.getFullYear()) * 12 + (e.getMonth() - s.getMonth()) + 1
+  const months = (e.getUTCFullYear() - s.getUTCFullYear()) * 12 + (e.getUTCMonth() - s.getUTCMonth()) + 1
   return monthly * Math.max(0, months)
 }
 
