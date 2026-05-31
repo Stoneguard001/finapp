@@ -32,6 +32,7 @@ export default function Budgets() {
   const [refresh, setRefresh]                     = useState(0)
   const [view, setView]                           = useState('monthly')
   const [expandedItemId, setExpanded]             = useState(null)
+  const [expandedNameGroups, setExpandedNameGroups] = useState(new Set())
   const [selectedYear, setSelectedYear]           = useState(new Date().getFullYear())
   const [collapsedGroups, setCollapsedGroups]     = useState(new Set())
   const [collapsedCategories, setCollapsedCats]   = useState(new Set())
@@ -53,6 +54,15 @@ export default function Budgets() {
     })
   }
 
+  function toggleNameGroup(categoryId, name) {
+    const key = `${categoryId}::${name}`
+    setExpandedNameGroups(prev => {
+      const next = new Set(prev)
+      next.has(key) ? next.delete(key) : next.add(key)
+      return next
+    })
+  }
+
   const now         = new Date()
   const currentYear = now.getFullYear()
   const month       = String(now.getMonth() + 1).padStart(2, '0')
@@ -62,6 +72,18 @@ export default function Budgets() {
   const yearEnd    = `${selectedYear}-12-31`
   const monthStart = `${currentYear}-${month}-01`
   const monthEnd   = new Date(currentYear, now.getMonth() + 1, 0).toISOString().slice(0, 10)
+
+  // Count how many calendar months of selectedYear an item is actually active
+  function activeMonthsInYear(item) {
+    const effStart = item.start_date > yearStart ? item.start_date : yearStart
+    const effEnd   = item.end_date && item.end_date < yearEnd ? item.end_date : yearEnd
+    if (effStart > effEnd) return 0
+    const [sy, sm] = effStart.slice(0, 7).split('-').map(Number)
+    const [ey, em] = effEnd.slice(0, 7).split('-').map(Number)
+    return (ey - sy) * 12 + (em - sm) + 1
+  }
+
+  const toAnnualProrated = (b) => toMonthly(b) * activeMonthsInYear(b)
 
   const { data: budgets = [] }      = useQuery(() => getBudgets(), [refresh])
   const { data: transactions = [] } = useQuery(
@@ -120,10 +142,26 @@ export default function Budgets() {
   const incomeBudgets  = budgets.filter(b => b.is_income)
   const expenseBudgets = budgets.filter(b => !b.is_income)
 
-  const totalIncMonthly = incomeBudgets.reduce((s, b)  => s + toMonthly(b), 0)
-  const totalExpMonthly = expenseBudgets.reduce((s, b) => s + toMonthly(b), 0)
-  const totalIncAnnual  = incomeBudgets.reduce((s, b)  => s + toAnnual(b),  0)
-  const totalExpAnnual  = expenseBudgets.reduce((s, b) => s + toAnnual(b),  0)
+  function deduplicatedMonthly(groupList) {
+    return groupList.reduce((total, group) => {
+      const byName = {}
+      for (const item of group.items) {
+        if (!byName[item.name]) byName[item.name] = []
+        byName[item.name].push(item)
+      }
+      return total + Object.values(byName).reduce((s, items) => {
+        const active = items.find(b =>
+          b.start_date <= monthEnd && (!b.end_date || b.end_date >= monthStart)
+        )
+        return s + (active ? toMonthly(active) : 0)
+      }, 0)
+    }, 0)
+  }
+
+  const totalIncMonthly = deduplicatedMonthly(incomeGroups)
+  const totalExpMonthly = deduplicatedMonthly(expenseGroups)
+  const totalIncAnnual  = incomeBudgets.reduce((s, b)  => s + toAnnualProrated(b), 0)
+  const totalExpAnnual  = expenseBudgets.reduce((s, b) => s + toAnnualProrated(b), 0)
   const netMonthly = totalIncMonthly - totalExpMonthly
   const netAnnual  = totalIncAnnual  - totalExpAnnual
 
@@ -139,16 +177,33 @@ export default function Budgets() {
 
   function renderCategoryCard(group) {
     const isIncome = Boolean(group.is_income)
+    const periodAbbr = { weekly: 'wk', monthly: 'mo', quarterly: 'qtr', semi_annual: '6mo', annual: 'yr' }
+
+    // Group items by name to detect multi-period items
+    const itemsByName = {}
+    for (const item of group.items) {
+      if (!itemsByName[item.name]) itemsByName[item.name] = []
+      itemsByName[item.name].push(item)
+    }
+
+    function getActiveItem(items) {
+      return items.find(b =>
+        b.start_date <= monthEnd && (!b.end_date || b.end_date >= monthStart)
+      ) ?? null
+    }
 
     const actual = view === 'monthly'
-      ? isIncome
-        ? (spending.incMonthly[group.category_id] ?? 0)
-        : (spending.expMonthly[group.category_id] ?? 0)
-      : isIncome
-        ? (spending.incAnnual[group.category_id] ?? 0)
-        : (spending.expAnnual[group.category_id] ?? 0)
+      ? isIncome ? (spending.incMonthly[group.category_id] ?? 0) : (spending.expMonthly[group.category_id] ?? 0)
+      : isIncome ? (spending.incAnnual[group.category_id]  ?? 0) : (spending.expAnnual[group.category_id]  ?? 0)
 
-    const budgeted  = group.items.reduce((s, b) => s + (view === 'monthly' ? toMonthly(b) : toAnnual(b)), 0)
+    // Monthly: count only the active item per unique name; annual: prorate by active months
+    const budgeted = view === 'monthly'
+      ? Object.values(itemsByName).reduce((s, items) => {
+          const active = getActiveItem(items)
+          return s + (active ? toMonthly(active) : 0)
+        }, 0)
+      : group.items.reduce((s, b) => s + toAnnualProrated(b), 0)
+
     const remaining = budgeted - actual
     const pct       = budgeted > 0 ? Math.min(100, (actual / budgeted) * 100) : 0
     const over      = remaining < 0
@@ -156,10 +211,9 @@ export default function Budgets() {
     const periodLabel = view === 'annual' ? ' YTD' : ' this month'
     const actLabel    = isIncome ? 'received' : 'spent'
     const remLabel    = isIncome
-      ? over  ? `${fmt(Math.abs(remaining))} over target` : `${fmt(remaining)} remaining`
-      : over  ? `${fmt(Math.abs(remaining))} over`        : `${fmt(remaining)} left`
+      ? over ? `${fmt(Math.abs(remaining))} over target` : `${fmt(remaining)} remaining`
+      : over ? `${fmt(Math.abs(remaining))} over`        : `${fmt(remaining)} left`
 
-    // For income, receiving more than expected is fine — no warning/red states
     const barColor = isIncome
       ? over ? 'bg-brand-500' : 'bg-green-500'
       : over ? 'bg-red-500' : pct >= 80 ? 'bg-yellow-500' : 'bg-green-500'
@@ -169,9 +223,65 @@ export default function Budgets() {
 
     const isCatCollapsed = collapsedCategories.has(group.category_id)
 
+    function renderTxnList(item) {
+      const [viewStart, viewEnd] = view === 'monthly' ? [monthStart, monthEnd] : [yearStart, yearEnd]
+      const itemTxns = transactions
+        .filter(t =>
+          (isIncome ? t.amount > 0 : t.amount < 0) &&
+          t.date >= viewStart && t.date <= viewEnd && (
+            t.budget_item_id === item.id ||
+            (t.category_id === item.category_id && !t.budget_item_id)
+          )
+        )
+        .sort((a, b) => b.date.localeCompare(a.date))
+
+      return itemTxns.length === 0 ? (
+        <p className="text-xs text-slate-400 px-3 py-2">No transactions found for this period.</p>
+      ) : (
+        <>
+          <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {itemTxns.map(t => (
+              <div key={t.id} className="flex items-center justify-between px-3 py-1.5 group/row">
+                <div className="flex items-center gap-2 min-w-0">
+                  {t.budget_item_id === item.id
+                    ? <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-brand-500" title="Linked to this budget item" />
+                    : <span className="shrink-0 w-1.5 h-1.5" />}
+                  <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">{fmtDate(t.date)}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{t.description}</span>
+                </div>
+                <div className="flex items-center gap-1 ml-3 shrink-0">
+                  <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                    {fmt(isIncome ? t.amount : Math.abs(t.amount))}
+                  </span>
+                  {!t.budget_item_id && (
+                    <button
+                      className="opacity-0 group-hover/row:opacity-100 transition-opacity btn-ghost p-1 text-slate-400 hover:text-brand-500"
+                      title="Link to this budget item"
+                      onClick={() => { updateTransaction(t.id, { budget_item_id: item.id }); bump() }}
+                    >
+                      <Link2 size={11} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          {itemTxns.length > 1 && (
+            <div className="flex justify-end px-3 py-1.5 border-t border-slate-100 dark:border-slate-700/50">
+              <span className="text-xs text-slate-500">
+                Total: <span className="font-medium">
+                  {fmt(itemTxns.reduce((s, t) => s + (isIncome ? t.amount : Math.abs(t.amount)), 0))}
+                </span>
+              </span>
+            </div>
+          )}
+        </>
+      )
+    }
+
     return (
       <div key={group.category_id ?? 'none'} className="card">
-        {/* Category header — always visible */}
+        {/* Category header */}
         <div className="flex items-center gap-2">
           <button
             className="flex items-center gap-1.5 min-w-0 text-left"
@@ -202,109 +312,134 @@ export default function Budgets() {
         </div>
 
         <div className="divide-y divide-slate-100 dark:divide-slate-800">
-          {group.items.map(item => {
-            const displayAmt   = view === 'monthly' ? toMonthly(item) : toAnnual(item)
-            const nativePeriod = view === 'monthly' ? 'monthly' : 'annual'
-            const isConverted  = item.period !== nativePeriod
-            const periodAbbr   = { weekly: 'wk', monthly: 'mo', quarterly: 'qtr', semi_annual: '6mo', annual: 'yr' }
-            const isExpanded   = expandedItemId === item.id
+          {Object.entries(itemsByName).map(([name, items]) => {
+            const isMulti        = items.length > 1
+            const nameGroupKey   = `${group.category_id}::${name}`
+            const isNameExpanded = isMulti && expandedNameGroups.has(nameGroupKey)
 
-            const [viewStart, viewEnd] = view === 'monthly'
-              ? [monthStart, monthEnd]
-              : [yearStart, yearEnd]
-            const itemTxns = transactions
-              .filter(t =>
-                (isIncome ? t.amount > 0 : t.amount < 0) &&
-                t.date >= viewStart && t.date <= viewEnd && (
-                  t.budget_item_id === item.id ||
-                  (t.category_id === item.category_id && !t.budget_item_id)
-                )
+            if (!isMulti) {
+              // ── Single item: existing behaviour ──────────────────────────
+              const item        = items[0]
+              const displayAmt  = view === 'monthly' ? toMonthly(item) : toAnnualProrated(item)
+              const isConverted = item.period !== (view === 'monthly' ? 'monthly' : 'annual')
+              const isExpanded  = expandedItemId === item.id
+
+              return (
+                <div key={item.id}>
+                  <div className="flex items-center justify-between py-2 first:pt-1">
+                    <button
+                      className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 text-left min-w-0"
+                      onClick={() => setExpanded(isExpanded ? null : item.id)}
+                    >
+                      {isExpanded
+                        ? <ChevronDown  size={13} className="shrink-0 text-slate-400" />
+                        : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
+                      <span className="truncate">{item.name}</span>
+                    </button>
+                    {item.end_date && (
+                      <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">ends {fmtDate(item.end_date)}</span>
+                    )}
+                    {!item.end_date && item.start_date > todayStr && (
+                      <span className="shrink-0 text-xs text-amber-500">starts {fmtDate(item.start_date)}</span>
+                    )}
+                    <div className="flex items-center gap-2 ml-2 shrink-0">
+                      {isConverted && (
+                        <span className="text-sm text-slate-400 dark:text-slate-500">
+                          {fmt(item.amount)}<span className="text-xs ml-0.5">/{periodAbbr[item.period] ?? item.period}</span>
+                        </span>
+                      )}
+                      <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
+                        {fmt(displayAmt)}<span className="text-xs font-normal text-slate-400 ml-0.5">/{view === 'monthly' ? 'mo' : 'yr'}</span>
+                      </span>
+                      <button onClick={() => setEditing(item)} className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit budget item"><Pencil size={13} /></button>
+                      <button onClick={() => handleDelete(item.id)} className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete budget item"><Trash2 size={13} /></button>
+                    </div>
+                  </div>
+                  {isExpanded && (
+                    <div className="mb-2 rounded-md bg-slate-50 dark:bg-slate-800/60 overflow-hidden">
+                      {renderTxnList(item)}
+                    </div>
+                  )}
+                </div>
               )
-              .sort((a, b) => b.date.localeCompare(a.date))
+            }
+
+            // ── Multi-period group ────────────────────────────────────────
+            const sortedItems = [...items].sort((a, b) => a.start_date.localeCompare(b.start_date))
+            const activeItem  = getActiveItem(items)
+            const displayAmt  = view === 'monthly'
+              ? (activeItem ? toMonthly(activeItem) : 0)
+              : items.reduce((s, b) => s + toAnnualProrated(b), 0)
+            const isConverted = view === 'monthly' && activeItem && activeItem.period !== 'monthly'
 
             return (
-              <div key={item.id}>
+              <div key={name}>
                 <div className="flex items-center justify-between py-2 first:pt-1">
                   <button
                     className="flex items-center gap-1.5 text-sm text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-slate-100 text-left min-w-0"
-                    onClick={() => setExpanded(isExpanded ? null : item.id)}
+                    onClick={() => toggleNameGroup(group.category_id, name)}
                   >
-                    {isExpanded
-                      ? <ChevronDown size={13} className="shrink-0 text-slate-400" />
+                    {isNameExpanded
+                      ? <ChevronDown  size={13} className="shrink-0 text-slate-400" />
                       : <ChevronRight size={13} className="shrink-0 text-slate-400" />}
-                    <span className="truncate">{item.name}</span>
+                    <span className="truncate">{name}</span>
+                    <span className="shrink-0 ml-1.5 text-[10px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700/60 px-1.5 py-0.5 rounded-full">
+                      {items.length} periods
+                    </span>
                   </button>
-                  {item.end_date && (
-                    <span className="shrink-0 text-xs text-slate-400 dark:text-slate-500">
-                      ends {fmtDate(item.end_date)}
-                    </span>
-                  )}
-                  {!item.end_date && item.start_date > todayStr && (
-                    <span className="shrink-0 text-xs text-amber-500">
-                      starts {fmtDate(item.start_date)}
-                    </span>
-                  )}
                   <div className="flex items-center gap-2 ml-2 shrink-0">
-                    {isConverted && (
+                    {isConverted && activeItem && (
                       <span className="text-sm text-slate-400 dark:text-slate-500">
-                        {fmt(item.amount)}
-                        <span className="text-xs ml-0.5">/{periodAbbr[item.period] ?? item.period}</span>
+                        {fmt(activeItem.amount)}<span className="text-xs ml-0.5">/{periodAbbr[activeItem.period]}</span>
                       </span>
                     )}
                     <span className="text-sm font-medium text-slate-800 dark:text-slate-200">
-                      {fmt(displayAmt)}
-                      <span className="text-xs font-normal text-slate-400 ml-0.5">/{view === 'monthly' ? 'mo' : 'yr'}</span>
+                      {fmt(displayAmt)}<span className="text-xs font-normal text-slate-400 ml-0.5">/{view === 'monthly' ? 'mo' : 'yr'}</span>
                     </span>
-                    <button onClick={() => setEditing(item)} className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit budget item"><Pencil size={13} /></button>
-                    <button onClick={() => handleDelete(item.id)} className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete budget item"><Trash2 size={13} /></button>
                   </div>
                 </div>
 
-                {isExpanded && (
-                  <div className="mb-2 rounded-md bg-slate-50 dark:bg-slate-800/60 overflow-hidden">
-                    {itemTxns.length === 0 ? (
-                      <p className="text-xs text-slate-400 px-3 py-2">No transactions found for this period.</p>
-                    ) : (
-                      <>
-                        <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
-                          {itemTxns.map(t => (
-                            <div key={t.id} className="flex items-center justify-between px-3 py-1.5 group/row">
-                              <div className="flex items-center gap-2 min-w-0">
-                                {t.budget_item_id === item.id
-                                  ? <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-brand-500" title="Linked to this budget item" />
-                                  : <span className="shrink-0 w-1.5 h-1.5" />
-                                }
-                                <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">{fmtDate(t.date)}</span>
-                                <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{t.description}</span>
-                              </div>
-                              <div className="flex items-center gap-1 ml-3 shrink-0">
-                                <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                                  {fmt(isIncome ? t.amount : Math.abs(t.amount))}
-                                </span>
-                                {!t.budget_item_id && (
-                                  <button
-                                    className="opacity-0 group-hover/row:opacity-100 transition-opacity btn-ghost p-1 text-slate-400 hover:text-brand-500"
-                                    title="Link to this budget item"
-                                    onClick={() => { updateTransaction(t.id, { budget_item_id: item.id }); bump() }}
-                                  >
-                                    <Link2 size={11} />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        {itemTxns.length > 1 && (
-                          <div className="flex justify-end px-3 py-1.5 border-t border-slate-100 dark:border-slate-700/50">
-                            <span className="text-xs text-slate-500">
-                              Total: <span className="font-medium">
-                                {fmt(itemTxns.reduce((s, t) => s + (isIncome ? t.amount : Math.abs(t.amount)), 0))}
+                {isNameExpanded && (
+                  <div className="mb-2 ml-3 rounded-md bg-slate-50 dark:bg-slate-800/60 overflow-hidden divide-y divide-slate-100 dark:divide-slate-700/50">
+                    {sortedItems.map(item => {
+                      const isItemExpanded = expandedItemId === item.id
+                      const isActive       = item === activeItem
+
+                      return (
+                        <div key={item.id}>
+                          <div className="flex items-center justify-between px-3 py-2">
+                            <button
+                              className="flex items-center gap-1.5 text-left min-w-0"
+                              onClick={() => setExpanded(isItemExpanded ? null : item.id)}
+                            >
+                              {isItemExpanded
+                                ? <ChevronDown  size={11} className="shrink-0 text-slate-400" />
+                                : <ChevronRight size={11} className="shrink-0 text-slate-400" />}
+                              <span className="text-xs text-slate-600 dark:text-slate-400">
+                                {fmtDate(item.start_date)} → {item.end_date ? fmtDate(item.end_date) : 'ongoing'}
                               </span>
-                            </span>
+                              {isActive && (
+                                <span className="shrink-0 ml-1 text-[10px] bg-brand-100 dark:bg-brand-900/40 text-brand-600 dark:text-brand-400 px-1.5 rounded-full">
+                                  current
+                                </span>
+                              )}
+                            </button>
+                            <div className="flex items-center gap-1 ml-2 shrink-0">
+                              <span className="text-xs text-slate-600 dark:text-slate-300">
+                                {fmt(item.amount)}<span className="text-[10px] text-slate-400 ml-0.5">/{periodAbbr[item.period]}</span>
+                              </span>
+                              <button onClick={() => setEditing(item)} className="btn-ghost p-1.5 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit"><Pencil size={11} /></button>
+                              <button onClick={() => handleDelete(item.id)} className="btn-ghost p-1.5 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete"><Trash2 size={11} /></button>
+                            </div>
                           </div>
-                        )}
-                      </>
-                    )}
+                          {isItemExpanded && (
+                            <div className="bg-white dark:bg-slate-900/50 mx-2 mb-2 rounded overflow-hidden">
+                              {renderTxnList(item)}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>

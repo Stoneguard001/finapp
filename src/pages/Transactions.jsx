@@ -12,6 +12,7 @@ import { fmt, fmtDate } from '@/lib/fmt'
 import CategoryBadge from '@/components/CategoryBadge'
 import YearPicker from '@/components/YearPicker'
 import TransactionModal from '@/components/transactions/TransactionModal'
+import TransactionDetailSheet from '@/components/transactions/TransactionDetailSheet'
 
 const NC = '__nc__'
 
@@ -36,6 +37,7 @@ export default function Transactions() {
   const [filterUncategorized, setFilterUncategorized] = useState(false)
   const [filterUnbudgeted, setFilterUnbudgeted]       = useState(false)
   const [editing, setEditing]             = useState(null)
+  const [detailTx, setDetailTx]           = useState(null)
   const [refresh, setRefresh]             = useState(0)
   const bump = useCallback(() => setRefresh(r => r + 1), [])
 
@@ -190,7 +192,7 @@ export default function Transactions() {
   return (
     <div className="space-y-4">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg shrink-0">
             <button
@@ -205,15 +207,16 @@ export default function Transactions() {
 
           {viewMode === 'month' ? (
             <div className="flex items-center gap-1">
-              <button onClick={() => changeMonth(m => subMonths(m, 1))} className="btn-ghost p-2.5" title="Previous month">
+              <button onClick={() => changeMonth(m => subMonths(m, 1))} className="btn-ghost p-1.5 sm:p-2.5" title="Previous month">
                 <ChevronLeft size={18} />
               </button>
-              <span className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
-                {format(selectedMonth, 'MMMM yyyy')}
+              <span className="text-xl font-semibold text-slate-900 dark:text-slate-100 text-center sm:w-44">
+                <span className="sm:hidden">{format(selectedMonth, 'MMM yyyy')}</span>
+                <span className="hidden sm:inline">{format(selectedMonth, 'MMMM yyyy')}</span>
               </span>
               <button
                 onClick={() => changeMonth(m => addMonths(m, 1))}
-                className="btn-ghost p-2.5"
+                className="btn-ghost p-1.5 sm:p-2.5"
                 disabled={isCurrentMonth}
                 title="Next month"
               >
@@ -224,7 +227,7 @@ export default function Transactions() {
             <YearPicker year={selectedYear} onChange={changeYear} />
           )}
         </div>
-        <button className="btn-primary shrink-0" onClick={() => setEditing({})}>+ Add</button>
+        <button className="btn-primary shrink-0 ml-auto" onClick={() => setEditing({})}>+ Add</button>
       </div>
 
       {/* Filters */}
@@ -370,7 +373,7 @@ export default function Transactions() {
 
       {/* Table */}
       <div className="card p-0 overflow-hidden">
-        <table className="w-full text-sm">
+        <table className="w-full text-sm table-fixed">
           <thead>
             <tr className="border-b border-slate-200 dark:border-slate-800 text-left">
               <th className="px-2 sm:px-4 py-3 w-8">
@@ -401,9 +404,10 @@ export default function Transactions() {
             {filtered.map(tx => (
               <tr
                 key={tx.id}
-                className={`border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-colors ${selectedIds.has(tx.id) ? 'bg-brand-50/40 dark:bg-brand-950/20' : ''}`}
+                className={`border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-colors cursor-pointer sm:cursor-auto ${selectedIds.has(tx.id) ? 'bg-brand-50/40 dark:bg-brand-950/20' : ''}`}
+                onClick={() => setDetailTx(tx)}
               >
-                <td className="px-2 sm:px-4 py-3">
+                <td className="px-2 sm:px-4 py-3" onClick={e => e.stopPropagation()}>
                   <input
                     type="checkbox"
                     className="rounded border-slate-300 dark:border-slate-600 cursor-pointer"
@@ -411,8 +415,8 @@ export default function Transactions() {
                     onChange={() => toggleSelect(tx.id)}
                   />
                 </td>
-                <td className="px-2 sm:px-4 py-3 text-slate-500 dark:text-slate-400 whitespace-nowrap align-top">
-                  {fmtDate(tx.date)}
+                <td className="px-2 sm:px-4 py-3 text-slate-500 dark:text-slate-400 align-top">
+                  <div className="whitespace-nowrap">{fmtDate(tx.date)}</div>
                   <div className="block sm:hidden mt-1">
                     <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
                     {tx.budget_item_name
@@ -456,7 +460,7 @@ export default function Transactions() {
                 <td className={`hidden sm:table-cell px-4 py-3 text-right font-mono font-medium whitespace-nowrap ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-800 dark:text-slate-200'}`}>
                   {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
                 </td>
-                <td className="px-2 sm:px-4 py-3">
+                <td className="px-2 sm:px-4 py-3" onClick={e => e.stopPropagation()}>
                   <div className="flex items-center gap-1 justify-end">
                     <button onClick={() => setEditing(tx)}      className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit transaction"><Pencil size={13} /></button>
                     <button onClick={() => handleDelete(tx.id)} className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete transaction"><Trash2 size={13} /></button>
@@ -481,6 +485,13 @@ export default function Transactions() {
           </div>
         )}
       </div>
+
+      <TransactionDetailSheet
+        transaction={detailTx}
+        onClose={() => setDetailTx(null)}
+        onEdit={() => { setEditing(detailTx); setDetailTx(null) }}
+        onDelete={() => { setDetailTx(null); handleDelete(detailTx.id) }}
+      />
 
       {editing !== null && (
         <TransactionModal

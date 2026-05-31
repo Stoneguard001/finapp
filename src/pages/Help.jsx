@@ -165,6 +165,13 @@ export default function Help() {
           </ul>
           <Tip>Mark a category as Income when creating or editing it on the Categories page, then add a budget item for it (e.g. Salary → $5,000/month).</Tip>
         </div>
+        <p className="text-xs text-slate-400 dark:text-slate-500">
+          New to budgeting? The{' '}
+          <a href="https://www.reddit.com/r/personalfinance/wiki/budgeting/" target="_blank" rel="noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200">
+            r/personalfinance budgeting guide
+          </a>
+          {' '}is a solid introduction to budgeting methods and strategies.
+        </p>
       </Section>
 
       <Section icon={Link} title="Linking Transactions to Budget Items">
