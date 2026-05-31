@@ -46,6 +46,10 @@ export default function Dashboard() {
   const activeStart = view === 'year' ? yearStart : view === 'ytd' ? ytdStart : monthStart
   const activeEnd   = view === 'year' ? yearEnd   : view === 'ytd' ? ytdEnd   : monthEnd
 
+  // Budget window: year view always targets the full year so the budget total
+  // reflects what was planned for all 12 months, not just the months elapsed so far.
+  const budgetEnd = view === 'year' ? `${selectedYear}-12-31` : activeEnd
+
   const { data: transactions = [] } = useQuery(
     () => getTransactions({ startDate: activeStart, endDate: activeEnd, limit: 5000 }),
     [activeStart, activeEnd]
@@ -71,8 +75,8 @@ export default function Dashboard() {
     [transactions])
 
   const budgetTotal = useMemo(() =>
-    budgets.reduce((s, b) => s + budgetedAmount(b, activeStart, activeEnd), 0),
-    [budgets, activeStart, activeEnd])
+    budgets.reduce((s, b) => s + budgetedAmount(b, activeStart, budgetEnd), 0),
+    [budgets, activeStart, budgetEnd])
 
   const incomeCategoryIds = useMemo(() =>
     new Set(budgets.filter(b => b.is_income).map(b => b.category_id)),
@@ -117,14 +121,14 @@ export default function Dashboard() {
         is_income:     b.is_income ?? 0,
         budgeted: 0
       }
-      map[key].budgeted += budgetedAmount(b, activeStart, activeEnd)
+      map[key].budgeted += budgetedAmount(b, activeStart, budgetEnd)
     }
     return Object.values(map).map(group => {
       const spent = Math.max(0, normalizedSpending[group.category_id] ?? 0)
       const pct   = group.budgeted > 0 ? Math.min(100, (spent / group.budgeted) * 100) : 0
       return { ...group, spent, pct }
     }).sort((a, b) => b.pct - a.pct)
-  }, [budgets, normalizedSpending, activeStart, activeEnd])
+  }, [budgets, normalizedSpending, activeStart, budgetEnd])
 
   const overBudget = categoryBudgetGroups.filter(g => g.pct >= 100).length
   const totalSpend = useMemo(() => byCategory.reduce((s, c) => s + c.total, 0), [byCategory])
@@ -196,7 +200,7 @@ export default function Dashboard() {
               <ChevronLeft size={18} />
             </button>
             <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100 w-44 text-center">
-              {selectedYear}{isCurrentYear ? ' YTD' : ''}
+              {selectedYear}
             </h1>
             <button
               onClick={() => setSelectedYear(y => y + 1)}
@@ -235,7 +239,7 @@ export default function Dashboard() {
             {view === 'ytd'
               ? `Income vs Expenses (${currentYear} YTD)`
               : view === 'year'
-              ? `Income vs Expenses (${selectedYear}${isCurrentYear ? ' YTD' : ''})`
+              ? `Income vs Expenses (${selectedYear})`
               : 'Income vs Expenses (6 months)'}
           </h2>
           <ResponsiveContainer width="100%" height={200}>
@@ -244,7 +248,7 @@ export default function Dashboard() {
               <YAxis tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false}
                 tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle}
-                formatter={v => [`$${v.toFixed(2)}`, undefined]} />
+                formatter={(v, name) => [fmt(v), name]} />
               <Bar dataKey="income"   fill="#22c55e" radius={[4, 4, 0, 0]} name="Income" />
               <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expenses" />
             </BarChart>

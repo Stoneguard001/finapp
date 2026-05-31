@@ -120,7 +120,8 @@ export const getMonthlyTotals = (months = 12) =>
            SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expenses,
            SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END)       as income
     FROM transactions
-    WHERE date >= date('now', '-${months} months')
+    WHERE is_transfer = 0
+      AND date >= date('now', '-${months} months')
     GROUP BY month
     ORDER BY month
   `)
@@ -131,7 +132,8 @@ export const getYearMonthlyTotals = (year) =>
            SUM(CASE WHEN amount < 0 THEN ABS(amount) ELSE 0 END) as expenses,
            SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END)       as income
     FROM transactions
-    WHERE strftime('%Y', date) = ?
+    WHERE is_transfer = 0
+      AND strftime('%Y', date) = ?
     GROUP BY month
     ORDER BY month
   `, [String(year)])

@@ -1,11 +1,13 @@
 import { useRef } from 'react'
-import { FolderOpen, FilePlus, HelpCircle, Sparkles } from 'lucide-react'
+import { FolderOpen, FilePlus, HelpCircle, Sparkles, Sun, Moon } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useDbStore } from '@/store/dbStore'
+import { useTheme } from '@/context/ThemeContext'
 import appIcon from '@/assets/app-icon.svg'
 
 export default function Welcome() {
   const { openNew, openFile, openFileHandle } = useDbStore()
+  const { dark, toggle } = useTheme()
   const inputRef = useRef()
 
   async function handleOpen() {
@@ -30,6 +32,13 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6">
+      <button
+        onClick={toggle}
+        title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+        className="fixed top-3 right-3 btn-ghost"
+      >
+        {dark ? <Sun size={16} /> : <Moon size={16} />}
+      </button>
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
           <img src={appIcon} alt="EvenKeel" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
@@ -90,20 +99,20 @@ export default function Welcome() {
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Getting started</p>
           <ol className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-900/50 text-brand-400 flex items-center justify-center text-xs font-bold">1</span>
-              Create a new database or open an existing one above.
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-bold">1</span>
+              <span>Create a new database or open an existing one above.</span>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-900/50 text-brand-400 flex items-center justify-center text-xs font-bold">2</span>
-              Add your accounts (checking, savings, credit cards) under <strong className="text-slate-700 dark:text-slate-300">Accounts</strong>.
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-bold">2</span>
+              <span>Add your accounts (checking, savings, credit cards) under <strong className="text-slate-700 dark:text-slate-300">Accounts</strong>.</span>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-900/50 text-brand-400 flex items-center justify-center text-xs font-bold">3</span>
-              Import transactions from your bank's CSV or Excel export via <strong className="text-slate-700 dark:text-slate-300">Import</strong>.
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-bold">3</span>
+              <span>Import transactions from your bank's CSV or Excel export via <strong className="text-slate-700 dark:text-slate-300">Import</strong>.</span>
             </li>
             <li className="flex gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-900/50 text-brand-400 flex items-center justify-center text-xs font-bold">4</span>
-              Visit <strong className="text-slate-700 dark:text-slate-300">Budgets</strong> to set monthly spending targets — starter data includes placeholders ready to fill in.
+              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-bold">4</span>
+              <span>Visit <strong className="text-slate-700 dark:text-slate-300">Budgets</strong> to set monthly spending targets — starter data includes placeholders ready to fill in.</span>
             </li>
           </ol>
         </div>
