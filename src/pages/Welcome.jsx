@@ -49,6 +49,23 @@ export default function Welcome() {
         </div>
 
         <div className="card space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Open Database</p>
+          <button
+            onClick={handleOpen}
+            className="w-full flex items-center gap-4 p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50
+                       hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-left"
+          >
+            <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
+              <FolderOpen size={20} className="text-slate-500 dark:text-slate-400" />
+            </div>
+            <div>
+              <div className="font-medium text-slate-900 dark:text-slate-100">Open Database</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">Load an existing .sqlite file from anywhere</div>
+            </div>
+          </button>
+        </div>
+
+        <div className="card space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">New Database</p>
           <div className="grid grid-cols-2 gap-2">
             <button
@@ -79,20 +96,6 @@ export default function Welcome() {
               </div>
             </button>
           </div>
-
-          <button
-            onClick={handleOpen}
-            className="w-full flex items-center gap-4 p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50
-                       hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-left"
-          >
-            <div className="w-10 h-10 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-              <FolderOpen size={20} className="text-slate-500 dark:text-slate-400" />
-            </div>
-            <div>
-              <div className="font-medium text-slate-900 dark:text-slate-100">Open Database</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Load an existing .sqlite file from anywhere</div>
-            </div>
-          </button>
         </div>
 
         <div className="card space-y-3">
