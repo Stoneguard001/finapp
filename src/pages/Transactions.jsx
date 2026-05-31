@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef, Fragment } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { Search, Pencil, Trash2, X, ChevronLeft, ChevronRight, FolderX, PiggyBank } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
@@ -13,6 +13,7 @@ import CategoryBadge from '@/components/CategoryBadge'
 import YearPicker from '@/components/YearPicker'
 import TransactionModal from '@/components/transactions/TransactionModal'
 import TransactionDetailSheet from '@/components/transactions/TransactionDetailSheet'
+import { useToast } from '@/context/ToastContext'
 
 const NC = '__nc__'
 
@@ -40,6 +41,7 @@ export default function Transactions() {
   const [detailTx, setDetailTx]           = useState(null)
   const [refresh, setRefresh]             = useState(0)
   const bump = useCallback(() => setRefresh(r => r + 1), [])
+  const { addToast } = useToast()
 
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkCategory, setBulkCategory] = useState(NC)
@@ -235,7 +237,7 @@ export default function Transactions() {
         <div className="relative flex-1 min-w-48">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
           <input
-            className={`input pl-9 w-full ${search ? 'pr-8' : ''}`}
+            className={`input pl-9 w-full ${search ? 'pr-8 !border-brand-500' : ''}`}
             placeholder="Search…"
             value={search}
             onChange={e => setSearch(e.target.value)}
@@ -252,7 +254,7 @@ export default function Transactions() {
         </div>
 
         <select
-          className="input w-40"
+          className={`input w-40 ${filterAccount ? '!border-brand-500' : ''}`}
           value={filterAccount}
           onChange={e => setFilterAccount(e.target.value)}
         >
@@ -262,7 +264,7 @@ export default function Transactions() {
 
         {availableGroups.length > 0 && (
           <select
-            className="input w-40"
+            className={`input w-40 ${filterGroup ? '!border-brand-500' : ''}`}
             value={filterGroup}
             onChange={e => handleGroupChange(e.target.value)}
           >
@@ -272,7 +274,7 @@ export default function Transactions() {
         )}
 
         <select
-          className="input w-44"
+          className={`input w-44 ${filterCategory ? '!border-brand-500' : ''}`}
           value={filterCategory}
           onChange={e => setFilterCategory(e.target.value)}
         >
@@ -292,13 +294,13 @@ export default function Transactions() {
       {/* Quick filters + tag filter */}
       <div className="flex flex-wrap gap-2 items-center">
         {[
-          { key: 'uncategorized', icon: FolderX, title: 'Show uncategorized', active: filterUncategorized, set: setFilterUncategorized },
-          { key: 'unbudgeted',    icon: PiggyBank,  title: 'Show unbudgeted',    active: filterUnbudgeted,    set: setFilterUnbudgeted    },
-        ].map(({ key, icon: Icon, title, active, set }) => (
+          { key: 'uncategorized', icon: FolderX,   label: 'Uncategorized', active: filterUncategorized, set: setFilterUncategorized },
+          { key: 'unbudgeted',    icon: PiggyBank,  label: 'Unbudgeted',    active: filterUnbudgeted,    set: setFilterUnbudgeted    },
+        ].map(({ key, icon: Icon, label, active, set }) => (
           <button
             key={key}
-            onClick={() => set(v => !v)}
-            title={title}
+            onClick={() => { set(v => !v); addToast(active ? `${label} filter removed` : `Showing ${label.toLowerCase()} transactions`, 'info') }}
+            title={`Show ${label.toLowerCase()}`}
             className={`p-1.5 rounded border transition-colors ${
               active
                 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 border-amber-300 dark:border-amber-700'
@@ -316,7 +318,11 @@ export default function Transactions() {
             {tags.map(tag => (
               <button
                 key={tag.id}
-                onClick={() => setFilterTag(filterTag === tag.id ? null : tag.id)}
+                onClick={() => {
+                  const removing = filterTag === tag.id
+                  setFilterTag(removing ? null : tag.id)
+                  addToast(removing ? `Tag filter removed` : `Filtering by tag: ${tag.name}`, 'info')
+                }}
                 className="flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium text-white transition-opacity"
                 style={{ background: tag.color, opacity: filterTag && filterTag !== tag.id ? 0.35 : 1 }}
               >
@@ -385,12 +391,12 @@ export default function Transactions() {
                   onChange={toggleSelectAll}
                 />
               </th>
-              <th className="px-2 sm:px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Date</th>
+              <th className="px-2 sm:px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500 w-24 sm:w-32">Date</th>
               <th className="px-2 sm:px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Description</th>
               <th className="hidden sm:table-cell px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Account</th>
               <th className="hidden sm:table-cell px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500">Category</th>
-              <th className="hidden sm:table-cell px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500 text-right">Amount</th>
-              <th className="px-2 sm:px-4 py-3 w-16"></th>
+              <th className="hidden sm:table-cell px-4 py-3 w-20"></th>
+              <th className="px-2 sm:px-4 py-3 text-xs font-medium text-slate-400 dark:text-slate-500 text-right">Amount</th>
             </tr>
           </thead>
           <tbody>
@@ -401,73 +407,87 @@ export default function Transactions() {
                 </td>
               </tr>
             )}
-            {filtered.map(tx => (
-              <tr
-                key={tx.id}
-                className={`border-b border-slate-200/50 dark:border-slate-800/50 hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-colors cursor-pointer sm:cursor-auto ${selectedIds.has(tx.id) ? 'bg-brand-50/40 dark:bg-brand-950/20' : ''}`}
-                onClick={() => setDetailTx(tx)}
-              >
-                <td className="px-2 sm:px-4 py-3" onClick={e => e.stopPropagation()}>
-                  <input
-                    type="checkbox"
-                    className="rounded border-slate-300 dark:border-slate-600 cursor-pointer"
-                    checked={selectedIds.has(tx.id)}
-                    onChange={() => toggleSelect(tx.id)}
-                  />
-                </td>
-                <td className="px-2 sm:px-4 py-3 text-slate-500 dark:text-slate-400 align-top">
-                  <div className="whitespace-nowrap">{fmtDate(tx.date)}</div>
-                  <div className="block sm:hidden mt-1">
-                    <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
-                    {tx.budget_item_name
-                      ? <div className="mt-0.5 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
-                      : tx.implied_budget_name
-                      ? <div className="mt-0.5 text-[10px] truncate text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</div>
-                      : null}
-                  </div>
-                </td>
-                <td className="px-2 sm:px-4 py-3 max-w-xs min-w-0 align-top">
-                  <div className="text-slate-800 dark:text-slate-200 truncate">{tx.description}</div>
-                  {tx.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-1">
-                      {tx.tags.map(tag => (
-                        <span key={tag.id}
-                          className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
-                          style={{ background: tag.color }}>
-                          {tag.name}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                  <div className={`block sm:hidden mt-1 font-mono font-medium ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-700 dark:text-slate-300'}`}>
-                    {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
-                  </div>
-                </td>
-                <td className="hidden sm:table-cell px-4 py-3">
-                  <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs">
-                    <span className="w-2 h-2 rounded-full" style={{ background: tx.account_color ?? '#64748b' }} />
-                    {tx.account_name}
-                  </span>
-                </td>
-                <td className="hidden sm:table-cell px-4 py-3">
-                  <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
-                  {tx.budget_item_name
-                    ? <div className="mt-1 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
-                    : tx.implied_budget_name
-                    ? <div className="mt-1 text-[10px] truncate text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</div>
-                    : null}
-                </td>
-                <td className={`hidden sm:table-cell px-4 py-3 text-right font-mono font-medium whitespace-nowrap ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-800 dark:text-slate-200'}`}>
-                  {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
-                </td>
-                <td className="px-2 sm:px-4 py-3" onClick={e => e.stopPropagation()}>
-                  <div className="flex items-center gap-1 justify-end">
-                    <button onClick={() => setEditing(tx)}      className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit transaction"><Pencil size={13} /></button>
-                    <button onClick={() => handleDelete(tx.id)} className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete transaction"><Trash2 size={13} /></button>
-                  </div>
-                </td>
-              </tr>
-            ))}
+            {filtered.map(tx => {
+              const rowBg = selectedIds.has(tx.id) ? 'bg-slate-200/70 dark:bg-slate-700/40' : ''
+              const rowHover = 'hover:bg-slate-100/30 dark:hover:bg-slate-800/30 transition-colors cursor-pointer'
+              return (
+                <Fragment key={tx.id}>
+                  {/* Main row — no bottom border on mobile (category row carries it) */}
+                  <tr
+                    className={`group border-b-0 sm:border-b border-slate-200/50 dark:border-slate-800/50 ${rowHover} ${rowBg}`}
+                    onClick={() => window.innerWidth < 640 ? setDetailTx(tx) : toggleSelect(tx.id)}
+                  >
+                    <td className="px-2 sm:px-4 pt-3 pb-1 sm:py-3 align-top" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        className="rounded border-slate-300 dark:border-slate-600 cursor-pointer"
+                        checked={selectedIds.has(tx.id)}
+                        onChange={() => toggleSelect(tx.id)}
+                      />
+                    </td>
+                    <td className="px-2 sm:px-4 pt-3 pb-1 sm:py-3 text-slate-500 dark:text-slate-400 align-top">
+                      <div className="whitespace-nowrap">{fmtDate(tx.date)}</div>
+                    </td>
+                    <td className="px-2 sm:px-4 pt-3 pb-1 sm:py-3 max-w-xs min-w-0 align-top">
+                      <div className="text-slate-800 dark:text-slate-200 truncate">{tx.description}</div>
+                      {tx.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {tx.tags.map(tag => (
+                            <span key={tag.id}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                              style={{ background: tag.color }}>
+                              {tag.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-3">
+                      <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 text-xs">
+                        <span className="w-2 h-2 rounded-full" style={{ background: tx.account_color ?? '#64748b' }} />
+                        {tx.account_name}
+                      </span>
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-3">
+                      <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
+                      {tx.budget_item_name
+                        ? <div className="mt-1 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
+                        : tx.implied_budget_name
+                        ? <div className="mt-1 text-[10px] truncate text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</div>
+                        : null}
+                    </td>
+                    <td className="hidden sm:table-cell px-4 py-3" onClick={e => e.stopPropagation()}>
+                      <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button onClick={() => setEditing(tx)}      className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200" title="Edit transaction"><Pencil size={13} /></button>
+                        <button onClick={() => handleDelete(tx.id)} className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500" title="Delete transaction"><Trash2 size={13} /></button>
+                      </div>
+                    </td>
+                    <td className={`px-2 sm:px-4 pt-3 pb-1 sm:py-3 text-right font-mono font-medium whitespace-nowrap align-top ${tx.amount >= 0 ? 'text-brand-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                      {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
+                    </td>
+                  </tr>
+                  {/* Mobile category row */}
+                  <tr
+                    className={`sm:hidden border-b border-slate-200/50 dark:border-slate-800/50 ${rowHover} ${rowBg}`}
+                    onClick={() => setDetailTx(tx)}
+                  >
+                    <td className="px-2 pt-0 pb-2" />
+                    <td colSpan={2} className="px-2 pt-0 pb-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tx.account_color ?? '#64748b' }} />
+                        <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
+                        {tx.budget_item_name
+                          ? <span className="text-[10px]" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</span>
+                          : tx.implied_budget_name
+                          ? <span className="text-[10px] text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</span>
+                          : null}
+                      </div>
+                    </td>
+                    <td className="px-2 pt-0 pb-2" />
+                  </tr>
+                </Fragment>
+              )
+            })}
           </tbody>
         </table>
 

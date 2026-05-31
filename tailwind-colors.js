@@ -9,12 +9,12 @@ export const evenKeelColors = {
     50: "#eef7fa",
     100: "#d4eaf1",
     200: "#abd6e1",
-    300: "#76bccb",
-    400: "#449cb2",
-    500: "#2b89a1", // ← logo "sea": links, focus rings, hovers
-    600: "#226e85", // ← primary button fill (btn-primary)
-    700: "#1f5a6d",
-    800: "#1d4a58",
+    300: "#6db3c6",
+    400: "#3a8ea4",
+    500: "#1f7a93", // ← logo "sea": links, focus rings, hovers
+    600: "#19647a", // ← primary button fill (btn-primary)
+    700: "#155264",
+    800: "#124454",
     900: "#1a3d49",
   },
 

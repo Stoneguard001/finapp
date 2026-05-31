@@ -26,22 +26,50 @@ export default function About() {
             Open source personal finance, entirely on your device
           </p>
         </div>
+        <a
+          href={KOFI_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="ml-auto flex-shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF5E5B] text-white text-xs font-medium hover:bg-[#e54e4b] transition-colors"
+        >
+          <Heart size={13} />
+          Buy me a coffee
+        </a>
       </div>
 
       <div className="card mb-4 space-y-4">
         <div className="flex items-start gap-3">
           <Database size={20} className="text-brand-500 flex-shrink-0 mt-0.5" />
-          <div className="space-y-1">
+          <div className="space-y-2">
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
               What is EvenKeel?
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              EvenKeel is a fully local budgeting app. Your data lives in a{" "}
-              <strong className="text-slate-800 dark:text-slate-200">
-                .sqlite file on your own machine
-              </strong>{" "}
-              — no account, no server, no tracking of any kind. It runs entirely
-              in the browser using SQLite compiled to WebAssembly.
+              I built EvenKeel to help plan my own budget. There are plenty of budgeting
+              apps out there, but most are more complicated than I need — and nearly all
+              of them want your personal finances in the cloud. I didn't want that. So I
+              made a{" "}
+              Progressive Web App{" "}
+              that runs entirely in the browser and keeps your data in a file locally.
+              No account, no server, no tracking of any kind.
+            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              The core budgeting, tracking, and stats will always be free. If EvenKeel
+              takes off I may expand it with additional financial tools down the road —
+              but the fundamentals stay free regardless.
+            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              That said, nothing is ever truly free. If EvenKeel saves you time or helps
+              you get a handle on your finances, please consider{" "}
+              <a
+                href={KOFI_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200 font-medium"
+              >
+                buying me a coffee on Ko-fi
+              </a>
+              . It means a lot and helps keep the project going.
             </p>
           </div>
         </div>
