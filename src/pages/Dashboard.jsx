@@ -244,7 +244,7 @@ export default function Dashboard() {
               <YAxis tick={{ fill: tickColor, fontSize: 11 }} axisLine={false} tickLine={false}
                 tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip contentStyle={tooltipStyle} itemStyle={tooltipTextStyle} labelStyle={tooltipTextStyle}
-                formatter={v => [`$${v.toFixed(2)}`, undefined]} />
+                formatter={(v, name) => [fmt(v), name]} />
               <Bar dataKey="income"   fill="#22c55e" radius={[4, 4, 0, 0]} name="Income" />
               <Bar dataKey="expenses" fill="#ef4444" radius={[4, 4, 0, 0]} name="Expenses" />
             </BarChart>
