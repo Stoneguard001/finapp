@@ -1,9 +1,11 @@
 import { X, Pencil, Trash2 } from 'lucide-react'
 import { fmt, fmtDate } from '@/lib/fmt'
 import CategoryBadge from '@/components/CategoryBadge'
+import { getTransactionSplits } from '@/db/queries/transactions'
 
 export default function TransactionDetailSheet({ transaction: tx, onClose, onEdit, onDelete }) {
   if (!tx) return null
+  const splits = tx.split_count > 0 ? getTransactionSplits(tx.id) : []
 
   return (
     <>
@@ -37,7 +39,20 @@ export default function TransactionDetailSheet({ transaction: tx, onClose, onEdi
               </span>
             </Row>
             <Row label="Category">
-              <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
+              {splits.length > 0 ? (
+                <div className="space-y-1.5 w-full">
+                  {splits.map(s => (
+                    <div key={s.id} className="flex items-center justify-between gap-2">
+                      <CategoryBadge icon={s.category_icon} name={s.category_name} color={s.category_color} />
+                      <span className={`font-mono text-xs shrink-0 ${s.amount >= 0 ? 'text-brand-400' : 'text-slate-600 dark:text-slate-400'}`}>
+                        {s.amount >= 0 ? '+' : ''}{fmt(s.amount)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
+              )}
             </Row>
             {(tx.budget_item_name || tx.implied_budget_name) ? (
               <Row label="Budget">

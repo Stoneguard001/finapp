@@ -1,13 +1,16 @@
 import { query, run, runMany } from '../database'
 
 // char(31) = unit separator, char(30) = record separator — safe delimiters for tag encoding
-const parseTags = row => ({
+const parseRow = row => ({
   ...row,
   tags: row.tags_raw
     ? row.tags_raw.split('\x1E').map(s => {
         const [id, name, color] = s.split('\x1F')
         return { id: Number(id), name, color }
       })
+    : [],
+  split_category_ids: row.split_category_ids_raw
+    ? row.split_category_ids_raw.split(',').map(Number)
     : []
 })
 
@@ -15,7 +18,10 @@ export const getTransactions = ({ accountId, categoryId, tagId, startDate, endDa
   const conditions = []
   const params = []
   if (accountId)  { conditions.push('t.account_id=?');  params.push(accountId) }
-  if (categoryId) { conditions.push('t.category_id=?'); params.push(categoryId) }
+  if (categoryId) {
+    conditions.push('(t.category_id=? OR EXISTS (SELECT 1 FROM transaction_splits WHERE transaction_id=t.id AND category_id=?))')
+    params.push(categoryId, categoryId)
+  }
   if (tagId)      { conditions.push('EXISTS (SELECT 1 FROM transaction_tags WHERE transaction_id=t.id AND tag_id=?)'); params.push(tagId) }
   if (startDate)  { conditions.push('t.date>=?');        params.push(startDate) }
   if (endDate)    { conditions.push('t.date<=?');        params.push(endDate) }
@@ -41,7 +47,9 @@ export const getTransactions = ({ accountId, categoryId, tagId, startDate, endDa
                AND (ib.end_date IS NULL OR ib.end_date >= t.date)
              ORDER BY ib.start_date DESC LIMIT 1
            ) END as implied_budget_name,
-           GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw
+           GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw,
+           (SELECT COUNT(*) FROM transaction_splits WHERE transaction_id = t.id) as split_count,
+           (SELECT GROUP_CONCAT(category_id) FROM transaction_splits WHERE transaction_id = t.id) as split_category_ids_raw
     FROM transactions t
     LEFT JOIN accounts        a  ON a.id  = t.account_id
     LEFT JOIN categories      c  ON c.id  = t.category_id
@@ -53,13 +61,15 @@ export const getTransactions = ({ accountId, categoryId, tagId, startDate, endDa
     GROUP BY t.id
     ORDER BY t.date DESC, t.id DESC
     LIMIT ? OFFSET ?
-  `, params).map(parseTags)
+  `, params).map(parseRow)
 }
 
 export const getTransaction = (id) => {
   const row = query(`
     SELECT t.*, a.name as account_name, c.name as category_name,
-           GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw
+           GROUP_CONCAT(tg.id || char(31) || tg.name || char(31) || tg.color, char(30)) as tags_raw,
+           (SELECT COUNT(*) FROM transaction_splits WHERE transaction_id = t.id) as split_count,
+           (SELECT GROUP_CONCAT(category_id) FROM transaction_splits WHERE transaction_id = t.id) as split_category_ids_raw
     FROM transactions t
     LEFT JOIN accounts        a  ON a.id  = t.account_id
     LEFT JOIN categories      c  ON c.id  = t.category_id
@@ -68,7 +78,7 @@ export const getTransaction = (id) => {
     WHERE t.id=?
     GROUP BY t.id
   `, [id])[0]
-  return row ? parseTags(row) : null
+  return row ? parseRow(row) : null
 }
 
 export const createTransaction = (tx) =>
@@ -97,21 +107,85 @@ export const updateTransaction = (id, fields) => {
 export const deleteTransaction = (id) =>
   run('DELETE FROM transactions WHERE id=?', [id])
 
-export const getSpendingByCategory = ({ startDate, endDate } = {}) => {
-  const conditions = ["t.amount < 0", "t.is_transfer = 0", "LOWER(COALESCE(c.name,'')) != 'transfer'"]
+// ── Split queries ─────────────────────────────────────────────────────────────
+
+export const getTransactionSplits = (transactionId) =>
+  query(`
+    SELECT ts.*,
+           c.name  as category_name,
+           c.icon  as category_icon,
+           c.color as category_color,
+           b.name  as budget_item_name,
+           b.period as budget_item_period
+    FROM transaction_splits ts
+    LEFT JOIN categories c ON c.id = ts.category_id
+    LEFT JOIN budgets     b ON b.id = ts.budget_item_id
+    WHERE ts.transaction_id = ?
+    ORDER BY ts.sort_order, ts.id
+  `, [transactionId])
+
+export const setTransactionSplits = (transactionId, splits) => {
+  run('DELETE FROM transaction_splits WHERE transaction_id=?', [transactionId])
+  if (splits.length === 0) return
+  runMany(
+    'INSERT INTO transaction_splits (transaction_id, category_id, budget_item_id, amount, note, sort_order) VALUES (?,?,?,?,?,?)',
+    splits.map((s, i) => [transactionId, s.category_id ?? null, s.budget_item_id ?? null, s.amount, s.note ?? null, i])
+  )
+}
+
+export const getSplitsForDateRange = ({ startDate, endDate } = {}) => {
+  const conditions = ['t.is_transfer = 0']
   const params = []
   if (startDate) { conditions.push('t.date>=?'); params.push(startDate) }
   if (endDate)   { conditions.push('t.date<=?'); params.push(endDate) }
   return query(`
-    SELECT c.id, c.name, c.icon, c.color,
-           SUM(ABS(t.amount)) as total,
-           COUNT(*) as count
-    FROM transactions t
-    LEFT JOIN categories c ON c.id = t.category_id
+    SELECT ts.category_id, ts.budget_item_id, ts.amount,
+           ts.transaction_id, ts.sort_order,
+           b.period as budget_item_period,
+           t.date, t.description,
+           c.name as category_name, c.icon as category_icon, c.color as category_color
+    FROM transaction_splits ts
+    JOIN transactions t ON t.id = ts.transaction_id
+    LEFT JOIN budgets b ON b.id = ts.budget_item_id
+    LEFT JOIN categories c ON c.id = ts.category_id
     WHERE ${conditions.join(' AND ')}
+    ORDER BY ts.transaction_id, ts.sort_order, ts.id
+  `, params)
+}
+
+// ── Analytics ─────────────────────────────────────────────────────────────────
+
+export const getSpendingByCategory = ({ startDate, endDate } = {}) => {
+  const dateConds = []
+  const dateParams = []
+  if (startDate) { dateConds.push('t.date>=?'); dateParams.push(startDate) }
+  if (endDate)   { dateConds.push('t.date<=?'); dateParams.push(endDate) }
+  const dateClause = dateConds.length ? ` AND ${dateConds.join(' AND ')}` : ''
+
+  return query(`
+    SELECT c.id, c.name, c.icon, c.color,
+           SUM(ABS(sub.amount)) as total,
+           COUNT(*) as count
+    FROM (
+      SELECT t.amount, t.category_id
+      FROM transactions t
+      WHERE t.amount < 0
+        AND t.is_transfer = 0
+        AND NOT EXISTS (SELECT 1 FROM transaction_splits WHERE transaction_id = t.id)
+        ${dateClause}
+      UNION ALL
+      SELECT ts.amount, ts.category_id
+      FROM transaction_splits ts
+      JOIN transactions t ON t.id = ts.transaction_id
+      WHERE ts.amount < 0
+        AND t.is_transfer = 0
+        ${dateClause}
+    ) sub
+    LEFT JOIN categories c ON c.id = sub.category_id
+    WHERE LOWER(COALESCE(c.name, '')) != 'transfer'
     GROUP BY c.id
     ORDER BY total DESC
-  `, params)
+  `, [...dateParams, ...dateParams])
 }
 
 export const getMonthlyTotals = (months = 12) =>

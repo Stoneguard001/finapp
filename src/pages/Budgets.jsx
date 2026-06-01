@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react'
 import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Link2 } from 'lucide-react'
 import { getBudgets, deleteBudget, PERIOD_TO_MONTHLY } from '@/db/queries/budgets'
-import { getTransactions, updateTransaction } from '@/db/queries/transactions'
+import { getTransactions, updateTransaction, getSplitsForDateRange } from '@/db/queries/transactions'
 import { useQuery } from '@/hooks/useQuery'
 import { fmt, fmtDate } from '@/lib/fmt'
 import BudgetModal from '@/components/budgets/BudgetModal'
@@ -90,6 +90,10 @@ export default function Budgets() {
     () => getTransactions({ startDate: yearStart, endDate: yearEnd, limit: 10000 }),
     [yearStart, refresh]
   )
+  const { data: yearSplits = [] } = useQuery(
+    () => getSplitsForDateRange({ startDate: yearStart, endDate: yearEnd }),
+    [yearStart, refresh]
+  )
 
   const spending = useMemo(() => {
     const expMonthly = {}
@@ -97,23 +101,30 @@ export default function Budgets() {
     const incMonthly = {}
     const incAnnual  = {}
 
-    for (const t of transactions) {
-      if (!t.category_id) continue
-      if (t.amount < 0) {
-        const amt = Math.abs(t.amount)
-        expAnnual[t.category_id] = (expAnnual[t.category_id] ?? 0) + amt
-        if (t.date >= monthStart && t.date <= monthEnd) {
-          expMonthly[t.category_id] = (expMonthly[t.category_id] ?? 0) + amt
-        }
-      } else if (t.amount > 0) {
-        incAnnual[t.category_id] = (incAnnual[t.category_id] ?? 0) + t.amount
-        if (t.date >= monthStart && t.date <= monthEnd) {
-          incMonthly[t.category_id] = (incMonthly[t.category_id] ?? 0) + t.amount
-        }
+    function accumulate(catId, amount, date) {
+      if (amount < 0) {
+        const amt = Math.abs(amount)
+        expAnnual[catId] = (expAnnual[catId] ?? 0) + amt
+        if (date >= monthStart && date <= monthEnd)
+          expMonthly[catId] = (expMonthly[catId] ?? 0) + amt
+      } else if (amount > 0) {
+        incAnnual[catId] = (incAnnual[catId] ?? 0) + amount
+        if (date >= monthStart && date <= monthEnd)
+          incMonthly[catId] = (incMonthly[catId] ?? 0) + amount
       }
     }
+
+    for (const t of transactions) {
+      if (!t.category_id) continue  // split parents have null category_id — handled below
+      accumulate(t.category_id, t.amount, t.date)
+    }
+    for (const s of yearSplits) {
+      if (!s.category_id) continue
+      accumulate(s.category_id, s.amount, s.date)
+    }
+
     return { expMonthly, expAnnual, incMonthly, incAnnual }
-  }, [transactions, monthStart, monthEnd])
+  }, [transactions, yearSplits, monthStart, monthEnd])
 
   const groups = useMemo(() => {
     const map = {}
@@ -235,7 +246,18 @@ export default function Budgets() {
         )
         .sort((a, b) => b.date.localeCompare(a.date))
 
-      return itemTxns.length === 0 ? (
+      // Split portions that belong to this category/budget item
+      const splitRows = yearSplits
+        .filter(s =>
+          s.category_id === item.category_id &&
+          s.date >= viewStart && s.date <= viewEnd &&
+          (isIncome ? s.amount > 0 : s.amount < 0)
+        )
+        .sort((a, b) => b.date.localeCompare(a.date))
+
+      const totalRows = itemTxns.length + splitRows.length
+
+      return totalRows === 0 ? (
         <p className="text-xs text-slate-400 px-3 py-2">No transactions found for this period.</p>
       ) : (
         <>
@@ -265,12 +287,28 @@ export default function Budgets() {
                 </div>
               </div>
             ))}
+            {splitRows.map(s => (
+              <div key={`split-${s.transaction_id}`} className="flex items-center justify-between px-3 py-1.5">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-purple-400" title="Split portion" />
+                  <span className="text-xs text-slate-400 dark:text-slate-500 shrink-0">{fmtDate(s.date)}</span>
+                  <span className="text-xs text-slate-600 dark:text-slate-300 truncate">{s.description}</span>
+                  <span className="shrink-0 text-[10px] text-purple-500 dark:text-purple-400 bg-purple-50 dark:bg-purple-900/20 px-1 rounded">split</span>
+                </div>
+                <span className="text-xs font-medium text-slate-700 dark:text-slate-300 ml-3 shrink-0">
+                  {fmt(isIncome ? s.amount : Math.abs(s.amount))}
+                </span>
+              </div>
+            ))}
           </div>
-          {itemTxns.length > 1 && (
+          {totalRows > 1 && (
             <div className="flex justify-end px-3 py-1.5 border-t border-slate-100 dark:border-slate-700/50">
               <span className="text-xs text-slate-500">
                 Total: <span className="font-medium">
-                  {fmt(itemTxns.reduce((s, t) => s + (isIncome ? t.amount : Math.abs(t.amount)), 0))}
+                  {fmt(
+                    itemTxns.reduce((s, t) => s + (isIncome ? t.amount : Math.abs(t.amount)), 0) +
+                    splitRows.reduce((s, r) => s + (isIncome ? r.amount : Math.abs(r.amount)), 0)
+                  )}
                 </span>
               </span>
             </div>
