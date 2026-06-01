@@ -10,13 +10,13 @@ import { useTheme } from '@/context/ThemeContext'
 import { fmt } from '@/lib/fmt'
 
 // Returns the pro-rated budgeted amount for a budget item within a date window.
-// Counts the number of calendar months the budget overlaps with the window,
-// then multiplies by the monthly equivalent of the budget amount.
+// Returns 0 if the budget is inactive during the window (ended before or starts after).
 function budgetedAmount(budget, windowStart, windowEnd) {
-  const effStart = (budget.start_date && budget.start_date > windowStart) ? budget.start_date : windowStart
-  const effEnd   = (budget.end_date   && budget.end_date   < windowEnd)   ? budget.end_date   : windowEnd
-  if (effStart > effEnd) return 0
-  const monthly = budget.amount * (PERIOD_TO_MONTHLY[budget.period] ?? 1)
+  if (budget.end_date   && budget.end_date   < windowStart) return 0
+  if (budget.start_date && budget.start_date > windowEnd)   return 0
+  const effStart = (budget.start_date > windowStart) ? budget.start_date : windowStart
+  const effEnd   = (budget.end_date   && budget.end_date < windowEnd) ? budget.end_date : windowEnd
+  const monthly  = budget.amount * (PERIOD_TO_MONTHLY[budget.period] ?? 1)
   const s = new Date(effStart)
   const e = new Date(effEnd)
   const months = (e.getUTCFullYear() - s.getUTCFullYear()) * 12 + (e.getUTCMonth() - s.getUTCMonth()) + 1
@@ -75,7 +75,9 @@ export default function Dashboard() {
     [transactions])
 
   const budgetTotal = useMemo(() =>
-    budgets.reduce((s, b) => s + budgetedAmount(b, activeStart, budgetEnd), 0),
+    budgets
+      .filter(b => !b.is_income)
+      .reduce((s, b) => s + budgetedAmount(b, activeStart, budgetEnd), 0),
     [budgets, activeStart, budgetEnd])
 
   const incomeCategoryIds = useMemo(() =>
