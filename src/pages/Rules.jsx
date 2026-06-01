@@ -1,5 +1,5 @@
 import { useState, useCallback, useMemo } from 'react'
-import { Trash2, ChevronUp, ChevronDown, ChevronsUpDown, Search, Info, X, Wand2 } from 'lucide-react'
+import { Trash2, Pencil, ChevronUp, ChevronDown, ChevronsUpDown, Search, Info, X, Wand2 } from 'lucide-react'
 import { getRules, deleteRule, getCategories, applyRuleToExisting } from '@/db/queries/categories'
 import { getBudgets } from '@/db/queries/budgets'
 import { getTags } from '@/db/queries/tags'
@@ -18,6 +18,7 @@ function SortIcon({ col, sort }) {
 
 export default function Rules() {
   const [showModal, setShowModal] = useState(false)
+  const [editingRule, setEditingRule] = useState(null)
   const [refresh, setRefresh]     = useState(0)
   const [search, setSearch]       = useState('')
   const [sort, setSort]           = useState({ col: 'priority', dir: 'desc' })
@@ -188,6 +189,13 @@ export default function Rules() {
                     >
                       <Wand2 size={13} />
                     </button>
+                    <button
+                      onClick={() => setEditingRule(r)}
+                      title="Edit rule"
+                      className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200"
+                    >
+                      <Pencil size={13} />
+                    </button>
                     <button onClick={() => handleDelete(r.id)}
                       title="Delete rule"
                       className="btn-ghost p-2 text-slate-400 dark:text-slate-500 hover:text-red-500">
@@ -208,6 +216,16 @@ export default function Rules() {
           budgets={budgets}
           onSave={() => { setShowModal(false); bump() }}
           onClose={() => setShowModal(false)}
+        />
+      )}
+      {editingRule && (
+        <RuleModal
+          categories={categories}
+          tags={tags}
+          budgets={budgets}
+          rule={editingRule}
+          onSave={() => { setEditingRule(null); bump() }}
+          onClose={() => setEditingRule(null)}
         />
       )}
     </div>

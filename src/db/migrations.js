@@ -56,5 +56,24 @@ export const migrations = [
     version: 6,
     description: 'Add budget_item_id to category_rules',
     up: 'ALTER TABLE category_rules ADD COLUMN budget_item_id INTEGER REFERENCES budgets(id)'
+  },
+  {
+    version: 7,
+    description: 'Add account_import_profiles for saved CSV column mappings',
+    up: `
+      CREATE TABLE IF NOT EXISTS account_import_profiles (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        account_id  INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+        col_date    TEXT    NOT NULL,
+        col_desc    TEXT    NOT NULL,
+        col_amount  TEXT,
+        col_debit   TEXT,
+        col_credit  TEXT,
+        col_payee   TEXT,
+        negate      INTEGER NOT NULL DEFAULT 0,
+        updated_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+        UNIQUE(account_id)
+      )
+    `
   }
 ]

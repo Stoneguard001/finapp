@@ -1,14 +1,16 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import { Upload, CheckCircle, AlertCircle, X, BookmarkPlus } from 'lucide-react'
-import { parseCSV } from '@/parsers/csv'
+import { parseCSV, applyColumnProfile } from '@/parsers/csv'
 import { parseExcel } from '@/parsers/excel'
 import { parsePDF } from '@/parsers/pdf'
 import PdfMapper from '@/components/PdfMapper'
+import ColumnMapper from '@/components/ColumnMapper'
 import { getAccounts } from '@/db/queries/accounts'
 import { getCategories, getRules, applyRules } from '@/db/queries/categories'
 import { findFuzzyDuplicates, createTransaction } from '@/db/queries/transactions'
 import { setTransactionTags } from '@/db/queries/tags'
 import { run } from '@/db/database'
+import { getAccountImportProfile, saveAccountImportProfile } from '@/db/queries/importProfiles'
 import { useQuery } from '@/hooks/useQuery'
 import { fmt, fmtDate } from '@/lib/fmt'
 import CategoryBadge from '@/components/CategoryBadge'
@@ -24,6 +26,7 @@ export default function ImportPage() {
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState(null)
   const [pdfData, setPdfData]         = useState(null)
+  const [rawImport, setRawImport]     = useState(null)
   const [savingRuleFor, setSavingRuleFor] = useState(null)
   const [excluded, setExcluded]       = useState(new Set())
   const [dupIndices, setDupIndices]   = useState(new Set())
@@ -82,15 +85,23 @@ export default function ImportPage() {
       } else {
         throw new Error(`Unsupported file type: .${ext}`)
       }
-      const enriched = parsed.rows.map(r => {
-        const match = applyRules(r.description ?? '', rules)
-        return { ...r, category_id: match?.category_id ?? null, budget_item_id: match?.budget_item_id ?? null, tag_ids: match?.tag_ids ?? [] }
-      })
-      setRows(enriched)
-      setExcluded(new Set())
-      setDupIndices(new Set())
-      setProfile(parsed.profile)
-      setStep('preview')
+      if (parsed.rows !== null) {
+        // Known institution format — go straight to preview
+        const enriched = parsed.rows.map(r => {
+          const match = applyRules(r.description ?? '', rules)
+          return { ...r, category_id: match?.category_id ?? null, budget_item_id: match?.budget_item_id ?? null, tag_ids: match?.tag_ids ?? [] }
+        })
+        setRows(enriched)
+        setExcluded(new Set())
+        setDupIndices(new Set())
+        setProfile(parsed.profile)
+        setStep('preview')
+      } else {
+        // Generic CSV — always show column mapper (pre-populate from saved profile if available)
+        const savedProfile = accountId ? getAccountImportProfile(Number(accountId)) : null
+        setRawImport({ headers: parsed.headers, rawRows: parsed.rawRows, savedProfile: savedProfile ?? null })
+        setStep('col-map')
+      }
     } catch (err) {
       setError(err.message)
     } finally {
@@ -172,6 +183,20 @@ export default function ImportPage() {
     setStep('preview')
   }
 
+  function handleColumnsMapped(mapping) {
+    if (accountId) saveAccountImportProfile(Number(accountId), mapping)
+    const mapped = applyColumnProfile(rawImport.rawRows, mapping)
+    const enriched = mapped.map(r => {
+      const match = applyRules(r.description ?? '', rules)
+      return { ...r, category_id: match?.category_id ?? null, budget_item_id: match?.budget_item_id ?? null, tag_ids: match?.tag_ids ?? [] }
+    })
+    setRows(enriched)
+    setExcluded(new Set())
+    setDupIndices(new Set())
+    setProfile('Generic')
+    setStep('preview')
+  }
+
   function reset() {
     setStep('upload')
     setRows([])
@@ -179,6 +204,7 @@ export default function ImportPage() {
     setResult(null)
     setError(null)
     setPdfData(null)
+    setRawImport(null)
     setExcluded(new Set())
     setDupIndices(new Set())
   }
@@ -240,6 +266,25 @@ export default function ImportPage() {
         </div>
       )}
 
+      {/* Step: Map CSV columns */}
+      {step === 'col-map' && rawImport && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="font-medium text-slate-900 dark:text-slate-100">Map Columns</h2>
+              <p className="text-slate-500 text-sm mt-0.5">{rawImport.rawRows.length} rows · {rawImport.headers.length} columns detected</p>
+            </div>
+            <button className="btn-ghost" onClick={reset}><X size={14} /> Cancel</button>
+          </div>
+          <ColumnMapper
+            headers={rawImport.headers}
+            rawRows={rawImport.rawRows}
+            savedProfile={rawImport.savedProfile}
+            onConfirm={handleColumnsMapped}
+          />
+        </div>
+      )}
+
       {/* Step: Preview */}
       {step === 'preview' && (
         <div className="space-y-4">
@@ -252,6 +297,9 @@ export default function ImportPage() {
               )}
             </p>
             <div className="flex gap-2">
+              {rawImport && (
+                <button className="btn-ghost" onClick={() => setStep('col-map')}>Remap columns</button>
+              )}
               <button className="btn-ghost" onClick={reset}><X size={14} /> Cancel</button>
               <button
                 className="btn-primary"
