@@ -106,12 +106,39 @@ export default function Help() {
         <p>Transactions are individual income or expense entries tied to an account.</p>
         <ul className="list-disc list-inside space-y-1 ml-1">
           <li>Use the month/year controls at the top to navigate between periods</li>
-          <li>Search by description, or filter by account, category, or tag</li>
-          <li>Click a row to edit the category, tag, amount, or linked budget item</li>
+          <li>Search by description, payee, category, account, or tag</li>
+          <li>Filter by account, group, or category using the dropdowns; click the pencil icon on any row to edit it</li>
           <li>Negative amounts are expenses; positive amounts are income</li>
           <li>Toggle <strong className="text-slate-800 dark:text-slate-200">Transfer</strong> on a transaction to mark it as a transfer between your own accounts — transfers are excluded from income/expense totals and budget spending</li>
         </ul>
         <Tip>Assign categories to transactions so the Dashboard pie chart and Budget progress bars stay accurate.</Tip>
+
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Quick Filters</p>
+          <p>Two icon buttons sit below the search bar for common tasks:</p>
+          <ul className="list-disc list-inside space-y-1 ml-1">
+            <li><strong className="text-slate-800 dark:text-slate-200">Uncategorized</strong> — shows only transactions with no category assigned</li>
+            <li><strong className="text-slate-800 dark:text-slate-200">Unbudgeted</strong> — shows expense transactions that belong to a category but have no matching budget item</li>
+          </ul>
+        </div>
+
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Bulk Operations</p>
+          <p>Select multiple transactions using the checkboxes on the left (or the header checkbox to select all visible rows). A toolbar appears at the top of the list where you can set the category and budget item for all selected transactions at once.</p>
+          <Tip>Bulk operations are skipped for split transactions — edit those individually to change their category breakdown.</Tip>
+        </div>
+
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Split Transactions</p>
+          <p>A single purchase can be split across multiple categories — for example a Costco run that includes groceries, clothing, and entertainment.</p>
+          <div className="space-y-2">
+            <Step n="1">Open a transaction and click <strong className="text-slate-800 dark:text-slate-200">Split →</strong> next to the Category label.</Step>
+            <Step n="2">Assign a category (and optional budget item) and amount to each split row. Use <strong className="text-slate-800 dark:text-slate-200">Add split</strong> to add more rows. With two splits, editing one amount automatically adjusts the other to keep the total balanced.</Step>
+            <Step n="3">The <strong className="text-slate-800 dark:text-slate-200">Balanced ✓</strong> indicator turns green when the splits sum to the transaction total. Save is disabled until balanced.</Step>
+          </div>
+          <p>Split transactions show a purple <strong className="text-slate-800 dark:text-slate-200">Split (N)</strong> badge in the transaction list. On desktop, each split's category and amount appear as indented sub-rows directly under the parent. The Budget page counts each split portion against its respective category's spending total.</p>
+          <Tip>To un-split a transaction, click <strong className="text-slate-800 dark:text-slate-200">← Single category</strong>. The first split's category is restored to the parent.</Tip>
+        </div>
 
         <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Tags</p>
@@ -128,11 +155,13 @@ export default function Help() {
       <Section icon={Upload} title="Importing Transactions">
         <p>Go to <strong className="text-slate-800 dark:text-slate-200">Import</strong> and drop a CSV, Excel, or PDF file exported from your bank.</p>
         <div className="space-y-2">
-          <Step n="1">Upload your file. For PDFs, map the columns (date, description, amount) to the correct fields.</Step>
-          <Step n="2">Review the preview table. EvenKeel auto-assigns categories based on your Rules — you can override any row before confirming.</Step>
-          <Step n="3">Click <strong className="text-slate-800 dark:text-slate-200">Save as Rule</strong> on any row to create a permanent auto-categorization rule for similar transactions in the future.</Step>
-          <Step n="4">Click <strong className="text-slate-800 dark:text-slate-200">Import</strong> to confirm. Duplicate transactions (same account, date, amount, description) are flagged and skipped.</Step>
+          <Step n="1">Upload your file. EvenKeel recognises common bank CSV formats (Chase, Bank of America, Amex, Capital One) automatically. For other CSVs and all PDFs, a <strong className="text-slate-800 dark:text-slate-200">column mapper</strong> appears so you can assign each column a role (Date, Description, Amount, etc.).</Step>
+          <Step n="2">Your column mapping is saved per account, so the next import from the same account pre-fills the mapper. Use <strong className="text-slate-800 dark:text-slate-200">Remap columns</strong> on the preview step if the layout changes.</Step>
+          <Step n="3">Review the preview table. EvenKeel auto-assigns categories based on your Rules — you can override any row before confirming.</Step>
+          <Step n="4">Click <strong className="text-slate-800 dark:text-slate-200">Save as Rule</strong> on any row to create a permanent auto-categorization rule for similar transactions in the future.</Step>
+          <Step n="5">Click <strong className="text-slate-800 dark:text-slate-200">Import</strong> to confirm. Duplicate transactions (same account, date, amount, description) are flagged and skipped.</Step>
         </div>
+        <Tip>If your bank exports positive numbers for expenses, check <strong className="text-slate-800 dark:text-slate-200">Negate amounts</strong> in the column mapper to flip the sign.</Tip>
       </Section>
 
       <Section icon={PiggyBank} title="Budgets">
@@ -208,7 +237,10 @@ export default function Help() {
           <li><strong className="text-slate-800 dark:text-slate-200">Starts with</strong> — matches if the description begins with the pattern</li>
           <li><strong className="text-slate-800 dark:text-slate-200">Regex</strong> — full regular expression for complex matching (<a href="https://regex101.com" target="_blank" rel="noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200">regex101.com</a> is a useful reference)</li>
           <li>Drag rows to reorder priority, or edit the priority number directly</li>
+          <li>Click the <strong className="text-slate-800 dark:text-slate-200">pencil icon</strong> on any rule to edit its pattern, category, budget item, or tags</li>
+          <li>Rules can also be created directly from the import preview by clicking <strong className="text-slate-800 dark:text-slate-200">Save as Rule</strong> on any transaction row</li>
         </ul>
+        <Tip>Higher priority numbers are matched first. Put specific rules (like exact merchant names) at a higher priority than broad ones.</Tip>
       </Section>
 
       <div className="mt-2 flex justify-center">

@@ -75,6 +75,18 @@ CREATE TABLE IF NOT EXISTS transaction_tags (
   PRIMARY KEY (transaction_id, tag_id)
 );
 
+-- ── Transaction Splits ────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS transaction_splits (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  transaction_id INTEGER NOT NULL REFERENCES transactions(id) ON DELETE CASCADE,
+  category_id    INTEGER REFERENCES categories(id),
+  budget_item_id INTEGER REFERENCES budgets(id),
+  amount         REAL    NOT NULL,
+  note           TEXT,
+  sort_order     INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX IF NOT EXISTS idx_tx_splits_tx ON transaction_splits(transaction_id);
+
 CREATE TABLE IF NOT EXISTS rule_tags (
   rule_id INTEGER NOT NULL REFERENCES category_rules(id) ON DELETE CASCADE,
   tag_id  INTEGER NOT NULL REFERENCES tags(id)           ON DELETE CASCADE,

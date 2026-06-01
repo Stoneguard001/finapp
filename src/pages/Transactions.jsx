@@ -2,7 +2,7 @@ import { useState, useCallback, useMemo, useEffect, useRef, Fragment } from 'rea
 import { useSearchParams } from 'react-router-dom'
 import { Search, Pencil, Trash2, X, ChevronLeft, ChevronRight, FolderX, PiggyBank } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
-import { getTransactions, deleteTransaction, updateTransaction } from '@/db/queries/transactions'
+import { getTransactions, deleteTransaction, updateTransaction, getSplitsForDateRange } from '@/db/queries/transactions'
 import { getCategories } from '@/db/queries/categories'
 import { getAccounts } from '@/db/queries/accounts'
 import { getTags } from '@/db/queries/tags'
@@ -60,6 +60,18 @@ export default function Transactions() {
     () => getTransactions({ startDate, endDate, limit: fetchLimit }),
     [startDate, endDate, refresh]
   )
+  const { data: rawSplits = [] } = useQuery(
+    () => getSplitsForDateRange({ startDate, endDate }),
+    [startDate, endDate, refresh]
+  )
+  const splitsByTxId = useMemo(() => {
+    const map = new Map()
+    for (const s of rawSplits) {
+      if (!map.has(s.transaction_id)) map.set(s.transaction_id, [])
+      map.get(s.transaction_id).push(s)
+    }
+    return map
+  }, [rawSplits])
 
   function changeMonth(updater) {
     setSelectedMonth(prev => {
@@ -101,12 +113,15 @@ export default function Transactions() {
   }, [filterGroup, categories])
 
   const filtered = transactions.filter(t => {
-    if (filterAccount        && t.account_id  !== Number(filterAccount))  return false
-    if (filterGroup          && (!t.category_id || !groupCatIds.has(t.category_id))) return false
-    if (filterCategory       && t.category_id !== Number(filterCategory)) return false
-    if (filterTag            && !t.tags.some(tag => tag.id === filterTag)) return false
-    if (filterUncategorized  && t.category_id) return false
-    if (filterUnbudgeted     && !(t.category_id && !t.is_transfer && !t.budget_item_name && !t.implied_budget_name)) return false
+    if (filterAccount  && t.account_id !== Number(filterAccount)) return false
+    if (filterGroup    && (!t.category_id || !groupCatIds.has(t.category_id))) return false
+    if (filterCategory) {
+      const catId = Number(filterCategory)
+      if (t.category_id !== catId && !t.split_category_ids.includes(catId)) return false
+    }
+    if (filterTag           && !t.tags.some(tag => tag.id === filterTag)) return false
+    if (filterUncategorized && (t.category_id || t.split_count > 0)) return false
+    if (filterUnbudgeted    && !(t.category_id && !t.is_transfer && !t.budget_item_name && !t.implied_budget_name)) return false
     if (search) {
       const q = search.toLowerCase()
       const match =
@@ -157,7 +172,15 @@ export default function Transactions() {
     if (bulkCategory !== NC) fields.category_id    = bulkCategory ? Number(bulkCategory) : null
     if (bulkBudget   !== NC) fields.budget_item_id = bulkBudget   ? Number(bulkBudget)   : null
     if (!Object.keys(fields).length) return
-    selectedIds.forEach(id => updateTransaction(id, fields))
+    const splitIds = []
+    selectedIds.forEach(id => {
+      const tx = transactions.find(t => t.id === id)
+      if (tx?.split_count > 0) { splitIds.push(id); return }
+      updateTransaction(id, fields)
+    })
+    if (splitIds.length > 0) {
+      addToast(`${splitIds.length} split transaction${splitIds.length > 1 ? 's' : ''} skipped — edit individually to change category`, 'info')
+    }
     setSelectedIds(new Set())
     setBulkCategory(NC)
     setBulkBudget(NC)
@@ -414,7 +437,7 @@ export default function Transactions() {
                 <Fragment key={tx.id}>
                   {/* Main row — no bottom border on mobile (category row carries it) */}
                   <tr
-                    className={`group border-b-0 sm:border-b border-slate-200/50 dark:border-slate-800/50 ${rowHover} ${rowBg}`}
+                    className={`group border-b-0 ${tx.split_count > 0 ? '' : 'sm:border-b'} border-slate-200/50 dark:border-slate-800/50 ${rowHover} ${rowBg}`}
                     onClick={() => window.innerWidth < 640 ? setDetailTx(tx) : toggleSelect(tx.id)}
                   >
                     <td className="px-2 sm:px-4 pt-3 pb-1 sm:py-3 align-top" onClick={e => e.stopPropagation()}>
@@ -449,12 +472,18 @@ export default function Transactions() {
                       </span>
                     </td>
                     <td className="hidden sm:table-cell px-4 py-3">
-                      <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
-                      {tx.budget_item_name
-                        ? <div className="mt-1 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
-                        : tx.implied_budget_name
-                        ? <div className="mt-1 text-[10px] truncate text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</div>
-                        : null}
+                      {tx.split_count > 0
+                        ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                            Split ({tx.split_count})
+                          </span>
+                        : <>
+                            <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
+                            {tx.budget_item_name
+                              ? <div className="mt-1 text-[10px] truncate" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</div>
+                              : tx.implied_budget_name
+                              ? <div className="mt-1 text-[10px] truncate text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</div>
+                              : null}
+                          </>}
                     </td>
                     <td className="hidden sm:table-cell px-4 py-3" onClick={e => e.stopPropagation()}>
                       <div className="flex items-center gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
@@ -466,6 +495,31 @@ export default function Transactions() {
                       {tx.amount >= 0 ? '+' : ''}{fmt(tx.amount)}
                     </td>
                   </tr>
+                  {/* Desktop split sub-rows */}
+                  {tx.split_count > 0 && (splitsByTxId.get(tx.id) ?? []).map((s, si, arr) => (
+                    <tr
+                      key={`${tx.id}-s${si}`}
+                      className={`hidden sm:table-row ${rowBg} ${si === arr.length - 1 ? 'border-b border-slate-200/50 dark:border-slate-800/50' : ''}`}
+                    >
+                      <td />
+                      <td />
+                      <td />
+                      <td />
+                      <td className="px-4 py-1">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-slate-300 dark:text-slate-600 text-xs select-none">
+                            {si === arr.length - 1 ? '└' : '├'}
+                          </span>
+                          <CategoryBadge icon={s.category_icon} name={s.category_name} color={s.category_color} />
+                        </div>
+                      </td>
+                      <td />
+                      <td className={`px-4 py-1 text-right font-mono text-xs whitespace-nowrap ${s.amount >= 0 ? 'text-brand-400' : 'text-slate-500 dark:text-slate-400'}`}>
+                        {s.amount >= 0 ? '+' : ''}{fmt(s.amount)}
+                      </td>
+                    </tr>
+                  ))}
+
                   {/* Mobile category row */}
                   <tr
                     className={`sm:hidden border-b border-slate-200/50 dark:border-slate-800/50 ${rowHover} ${rowBg}`}
@@ -475,12 +529,18 @@ export default function Transactions() {
                     <td colSpan={2} className="px-2 pt-0 pb-2">
                       <div className="flex items-center gap-1.5">
                         <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: tx.account_color ?? '#64748b' }} />
-                        <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
-                        {tx.budget_item_name
-                          ? <span className="text-[10px]" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</span>
-                          : tx.implied_budget_name
-                          ? <span className="text-[10px] text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</span>
-                          : null}
+                        {tx.split_count > 0
+                          ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">
+                              Split ({tx.split_count})
+                            </span>
+                          : <>
+                              <CategoryBadge icon={tx.category_icon} name={tx.category_name} color={tx.category_color} />
+                              {tx.budget_item_name
+                                ? <span className="text-[10px]" style={{ color: tx.budget_item_color ?? '#94a3b8' }}>{tx.budget_item_name}</span>
+                                : tx.implied_budget_name
+                                ? <span className="text-[10px] text-slate-400 dark:text-slate-500">~ {tx.implied_budget_name}</span>
+                                : null}
+                            </>}
                       </div>
                     </td>
                     <td className="px-2 pt-0 pb-2" />

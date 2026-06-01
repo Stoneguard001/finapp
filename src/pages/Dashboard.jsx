@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { TrendingDown, TrendingUp, Wallet, PiggyBank, ChevronLeft, ChevronRight } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts'
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } from 'date-fns'
-import { getTransactions, getMonthlyTotals, getYearMonthlyTotals, getSpendingByCategory } from '@/db/queries/transactions'
+import { getTransactions, getMonthlyTotals, getYearMonthlyTotals, getSpendingByCategory, getSplitsForDateRange } from '@/db/queries/transactions'
 import { getBudgets, PERIOD_TO_MONTHLY } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
 import { useTheme } from '@/context/ThemeContext'
@@ -64,6 +64,10 @@ export default function Dashboard() {
     () => getSpendingByCategory({ startDate: activeStart, endDate: activeEnd }),
     [activeStart, activeEnd]
   )
+  const { data: splits = [] } = useQuery(
+    () => getSplitsForDateRange({ startDate: activeStart, endDate: activeEnd }),
+    [activeStart, activeEnd]
+  )
   const { data: budgets = [] } = useQuery(() => getBudgets())
 
   const totalExpenses = useMemo(() =>
@@ -89,28 +93,41 @@ export default function Dashboard() {
   // Positive transactions on expense categories (refunds, rebates) net against spending.
   const normalizedSpending = useMemo(() => {
     const map = {}
-    for (const t of transactions) {
-      if (t.is_transfer || !t.category_id) continue
-      if (t.amount < 0) {
-        const amt = Math.abs(t.amount)
+
+    function applyAmount(catId, amount, periodKey) {
+      if (amount < 0) {
+        const amt = Math.abs(amount)
         if (view === 'year' || view === 'ytd') {
-          map[t.category_id] = (map[t.category_id] ?? 0) + amt
+          map[catId] = (map[catId] ?? 0) + amt
         } else {
-          const period = t.budget_item_id ? t.budget_item_period : null
-          const factor = PERIOD_TO_MONTHLY[period] ?? 1
-          const value  = (period && factor < 1) ? amt * factor : amt
-          map[t.category_id] = (map[t.category_id] ?? 0) + value
+          const factor = PERIOD_TO_MONTHLY[periodKey] ?? 1
+          const value  = (periodKey && factor < 1) ? amt * factor : amt
+          map[catId] = (map[catId] ?? 0) + value
         }
-      } else if (t.amount > 0) {
-        if (incomeCategoryIds.has(t.category_id)) {
-          map[t.category_id] = (map[t.category_id] ?? 0) + t.amount
+      } else if (amount > 0) {
+        if (incomeCategoryIds.has(catId)) {
+          map[catId] = (map[catId] ?? 0) + amount
         } else {
-          map[t.category_id] = (map[t.category_id] ?? 0) - t.amount
+          map[catId] = (map[catId] ?? 0) - amount
         }
       }
     }
+
+    // Non-split transactions
+    for (const t of transactions) {
+      if (t.is_transfer || !t.category_id || t.split_count > 0) continue
+      const period = t.budget_item_id ? t.budget_item_period : null
+      applyAmount(t.category_id, t.amount, period)
+    }
+
+    // Split portions
+    for (const s of splits) {
+      if (!s.category_id) continue
+      applyAmount(s.category_id, s.amount, s.budget_item_period ?? null)
+    }
+
     return map
-  }, [transactions, view, incomeCategoryIds])
+  }, [transactions, splits, view, incomeCategoryIds])
 
   const categoryBudgetGroups = useMemo(() => {
     const map = {}
