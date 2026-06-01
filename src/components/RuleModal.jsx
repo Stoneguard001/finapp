@@ -1,15 +1,16 @@
 import { useState, useMemo } from 'react'
 import Modal from '@/components/Modal'
-import { createRule, setRuleTags } from '@/db/queries/categories'
+import { createRule, updateRule, setRuleTags } from '@/db/queries/categories'
 import TagPicker from '@/components/TagPicker'
 
-export default function RuleModal({ categories, tags = [], budgets = [], initialPattern = '', initialCategoryId = null, onSave, onClose }) {
-  const [pattern, setPattern]         = useState(initialPattern.trim().toUpperCase())
-  const [patternType, setPatternType] = useState('contains')
-  const [categoryId, setCategoryId]   = useState(initialCategoryId ?? '')
-  const [budgetItemId, setBudgetItemId] = useState('')
-  const [priority, setPriority]       = useState(0)
-  const [selectedTagIds, setSelectedTagIds] = useState([])
+export default function RuleModal({ categories, tags = [], budgets = [], initialPattern = '', initialCategoryId = null, rule = null, onSave, onClose }) {
+  const editing = rule != null
+  const [pattern, setPattern]         = useState(editing ? rule.pattern : initialPattern.trim().toUpperCase())
+  const [patternType, setPatternType] = useState(editing ? rule.pattern_type : 'contains')
+  const [categoryId, setCategoryId]   = useState(editing ? String(rule.category_id) : (initialCategoryId ?? ''))
+  const [budgetItemId, setBudgetItemId] = useState(editing ? String(rule.budget_item_id ?? '') : '')
+  const [priority, setPriority]       = useState(editing ? rule.priority : 0)
+  const [selectedTagIds, setSelectedTagIds] = useState(editing ? rule.tags.map(t => t.id) : [])
 
   const categoryBudgets = useMemo(() =>
     budgets.filter(b => b.category_id === Number(categoryId)),
@@ -23,20 +24,26 @@ export default function RuleModal({ categories, tags = [], budgets = [], initial
 
   function handleSave() {
     if (!pattern.trim() || !categoryId) return
-    const rule = {
+    const data = {
       pattern:        pattern.trim(),
       pattern_type:   patternType,
       category_id:    Number(categoryId),
       budget_item_id: budgetItemId ? Number(budgetItemId) : null,
       priority:       Number(priority)
     }
-    const ruleId = createRule(rule)
-    if (selectedTagIds.length) setRuleTags(ruleId, selectedTagIds)
-    onSave({ ...rule, id: ruleId, tag_ids: selectedTagIds })
+    if (editing) {
+      updateRule({ ...data, id: rule.id })
+      setRuleTags(rule.id, selectedTagIds)
+      onSave({ ...data, id: rule.id, tag_ids: selectedTagIds })
+    } else {
+      const ruleId = createRule(data)
+      if (selectedTagIds.length) setRuleTags(ruleId, selectedTagIds)
+      onSave({ ...data, id: ruleId, tag_ids: selectedTagIds })
+    }
   }
 
   return (
-    <Modal title="Save Category Rule" onClose={onClose}>
+    <Modal title={editing ? 'Edit Category Rule' : 'Save Category Rule'} onClose={onClose}>
       <p className="text-sm text-slate-600 dark:text-slate-400">
         Transactions whose description matches this pattern will be auto-categorized on import.
       </p>
@@ -97,7 +104,7 @@ export default function RuleModal({ categories, tags = [], budgets = [], initial
         <button className="btn-ghost" onClick={onClose}>Cancel</button>
         <button className="btn-primary" onClick={handleSave}
           disabled={!pattern.trim() || !categoryId}>
-          Save Rule
+          {editing ? 'Update Rule' : 'Save Rule'}
         </button>
       </div>
     </Modal>

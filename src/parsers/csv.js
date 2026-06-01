@@ -46,21 +46,6 @@ const PROFILES = {
       }
     }
   },
-  generic: {
-    name: 'Generic',
-    detect: () => true,
-    map: (row, headers) => {
-      const dateCol   = headers.find(h => /date/i.test(h))
-      const amtCol    = headers.find(h => /amount|amt/i.test(h))
-      const descCol   = headers.find(h => /desc|memo|note|name/i.test(h))
-      return {
-        date:        normalizeDate(row[dateCol] ?? ''),
-        amount:      parseAmount(row[amtCol] ?? 0),
-        description: row[descCol] ?? JSON.stringify(row),
-        payee:       row[descCol] ?? null
-      }
-    }
-  }
 }
 
 function parseAmount(val) {
@@ -79,18 +64,44 @@ export function parseCSV(text) {
 
   const headers = result.meta.fields ?? []
   const profile = detectProfile(headers)
-  const rows = result.data
-    .map(row => profile.map(row, headers))
-    .filter(row => row.date && !isNaN(row.amount))
 
-  return { profile: profile.name, rows }
+  if (profile) {
+    const rows = result.data
+      .map(row => profile.map(row, headers))
+      .filter(row => row?.date && !isNaN(row.amount))
+    return { profile: profile.name, rows, headers: null, rawRows: null }
+  }
+
+  // Generic: always require manual column assignment so nothing is silently misread
+  return { profile: 'Generic', rows: null, headers, rawRows: result.data }
+}
+
+// Apply a saved (or newly confirmed) column mapping to raw CSV rows
+export function applyColumnProfile(rawRows, mapping) {
+  return rawRows.map(row => {
+    const date        = normalizeDate(row[mapping.col_date] ?? '')
+    const description = String(row[mapping.col_desc] ?? '').trim()
+    const payee       = mapping.col_payee ? String(row[mapping.col_payee] ?? '').trim() || null : null
+
+    let amount
+    if (mapping.col_amount) {
+      amount = parseAmount(row[mapping.col_amount])
+    } else {
+      const debit  = mapping.col_debit  ? (parseAmount(row[mapping.col_debit])  || 0) : 0
+      const credit = mapping.col_credit ? (parseAmount(row[mapping.col_credit]) || 0) : 0
+      amount = credit - debit
+    }
+    if (mapping.negate) amount = -amount
+
+    return { date, description, payee, amount }
+  }).filter(r => r.date && !isNaN(r.amount))
 }
 
 function detectProfile(headers) {
   for (const key of ['chase', 'bofa', 'amex', 'capital_one']) {
     if (PROFILES[key].detect(headers)) return PROFILES[key]
   }
-  return PROFILES.generic
+  return null
 }
 
 function normalizeDate(raw) {

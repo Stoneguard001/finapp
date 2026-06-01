@@ -75,6 +75,10 @@ export const setRuleTags = (ruleId, tagIds) => {
   }
 }
 
+export const updateRule = ({ id, pattern, pattern_type, category_id, budget_item_id, priority }) =>
+  run('UPDATE category_rules SET pattern=?,pattern_type=?,category_id=?,budget_item_id=?,priority=? WHERE id=?',
+    [pattern.toUpperCase(), pattern_type, category_id, budget_item_id ?? null, priority, id])
+
 export const deleteRule = (id) =>
   run('DELETE FROM category_rules WHERE id=?', [id])
 

@@ -108,6 +108,21 @@ CREATE TABLE IF NOT EXISTS import_sessions (
   imported_at   TEXT    NOT NULL DEFAULT (datetime('now'))
 );
 
+-- ── Account Import Profiles (saved CSV column mappings) ─────────────────────
+CREATE TABLE IF NOT EXISTS account_import_profiles (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  account_id  INTEGER NOT NULL REFERENCES accounts(id) ON DELETE CASCADE,
+  col_date    TEXT    NOT NULL,
+  col_desc    TEXT    NOT NULL,
+  col_amount  TEXT,
+  col_debit   TEXT,
+  col_credit  TEXT,
+  col_payee   TEXT,
+  negate      INTEGER NOT NULL DEFAULT 0,
+  updated_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(account_id)
+);
+
 -- ── App Settings (key/value store) ───────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS settings (
   key           TEXT    PRIMARY KEY,
