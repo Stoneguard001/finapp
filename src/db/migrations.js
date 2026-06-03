@@ -91,5 +91,15 @@ export const migrations = [
       );
       CREATE INDEX IF NOT EXISTS idx_tx_splits_tx ON transaction_splits(transaction_id);
     `
+  },
+  {
+    version: 9,
+    description: 'Add settings key/value table',
+    up: `
+      CREATE TABLE IF NOT EXISTS settings (
+        key   TEXT PRIMARY KEY,
+        value TEXT NOT NULL
+      );
+    `
   }
 ]

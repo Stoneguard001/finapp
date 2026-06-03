@@ -1,9 +1,11 @@
 import { X, Pencil, Trash2 } from 'lucide-react'
-import { fmt, fmtDate } from '@/lib/fmt'
+import { fmtDate } from '@/lib/fmt'
+import { useCurrency } from '@/context/CurrencyContext'
 import CategoryBadge from '@/components/CategoryBadge'
 import { getTransactionSplits } from '@/db/queries/transactions'
 
 export default function TransactionDetailSheet({ transaction: tx, onClose, onEdit, onDelete }) {
+  const { fmt } = useCurrency()
   if (!tx) return null
   const splits = tx.split_count > 0 ? getTransactionSplits(tx.id) : []
 

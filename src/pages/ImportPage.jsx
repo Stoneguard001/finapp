@@ -12,12 +12,14 @@ import { setTransactionTags } from '@/db/queries/tags'
 import { run } from '@/db/database'
 import { getAccountImportProfile, saveAccountImportProfile } from '@/db/queries/importProfiles'
 import { useQuery } from '@/hooks/useQuery'
-import { fmt, fmtDate } from '@/lib/fmt'
+import { fmtDate } from '@/lib/fmt'
+import { useCurrency } from '@/context/CurrencyContext'
 import CategoryBadge from '@/components/CategoryBadge'
 import RuleModal from '@/components/RuleModal'
 import { getTags } from '@/db/queries/tags'
 
 export default function ImportPage() {
+  const { fmt } = useCurrency()
   const [step, setStep]               = useState('upload')
   const [accountId, setAccountId]     = useState('')
   const [rows, setRows]               = useState([])
