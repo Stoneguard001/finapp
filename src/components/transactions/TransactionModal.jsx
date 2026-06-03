@@ -7,10 +7,11 @@ import { getBudgets } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
 import TagPicker from '@/components/TagPicker'
 import SearchableSelect from '@/components/SearchableSelect'
-import { fmt } from '@/lib/fmt'
+import { useCurrency } from '@/context/CurrencyContext'
 
 export default function TransactionModal({ transaction, categories, accounts, tags, onClose, onSave }) {
   const isNew = !transaction.id
+  const { fmt } = useCurrency()
   const { data: allBudgets = [] } = useQuery(() => getBudgets())
 
   const [form, setForm] = useState({

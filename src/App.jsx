@@ -12,6 +12,7 @@ import Accounts from '@/pages/Accounts'
 import ImportPage from '@/pages/ImportPage'
 import Categories from '@/pages/Categories'
 import Rules from '@/pages/Rules'
+import Settings from '@/pages/Settings'
 import Help from '@/pages/Help'
 import About from '@/pages/About'
 
@@ -53,6 +54,7 @@ function AppInner() {
         <Route path="/import"       element={<ImportPage />} />
         <Route path="/categories"   element={<Categories />} />
         <Route path="/rules"        element={<Rules />} />
+        <Route path="/settings"     element={<Settings />} />
         <Route path="/help"         element={<Help />} />
         <Route path="/about"        element={<About />} />
       </Routes>

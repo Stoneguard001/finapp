@@ -8,7 +8,8 @@ import { getAccounts } from '@/db/queries/accounts'
 import { getTags } from '@/db/queries/tags'
 import { getBudgets } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
-import { fmt, fmtDate } from '@/lib/fmt'
+import { fmtDate } from '@/lib/fmt'
+import { useCurrency } from '@/context/CurrencyContext'
 import CategoryBadge from '@/components/CategoryBadge'
 import YearPicker from '@/components/YearPicker'
 import TransactionModal from '@/components/transactions/TransactionModal'
@@ -18,6 +19,7 @@ import { useToast } from '@/context/ToastContext'
 const NC = '__nc__'
 
 export default function Transactions() {
+  const { fmt } = useCurrency()
   const [searchParams] = useSearchParams()
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const m = searchParams.get('month')

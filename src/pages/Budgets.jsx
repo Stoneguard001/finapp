@@ -3,7 +3,8 @@ import { Plus, Pencil, Trash2, ChevronRight, ChevronDown, Link2 } from 'lucide-r
 import { getBudgets, deleteBudget, PERIOD_TO_MONTHLY } from '@/db/queries/budgets'
 import { getTransactions, updateTransaction, getSplitsForDateRange } from '@/db/queries/transactions'
 import { useQuery } from '@/hooks/useQuery'
-import { fmt, fmtDate } from '@/lib/fmt'
+import { fmtDate } from '@/lib/fmt'
+import { useCurrency } from '@/context/CurrencyContext'
 import BudgetModal from '@/components/budgets/BudgetModal'
 import YearPicker from '@/components/YearPicker'
 
@@ -28,6 +29,7 @@ function buildSections(groupList) {
 }
 
 export default function Budgets() {
+  const { fmt } = useCurrency()
   const [editing, setEditing]                     = useState(null)
   const [refresh, setRefresh]                     = useState(0)
   const [view, setView]                           = useState('monthly')

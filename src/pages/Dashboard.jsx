@@ -7,7 +7,7 @@ import { getTransactions, getMonthlyTotals, getYearMonthlyTotals, getSpendingByC
 import { getBudgets, PERIOD_TO_MONTHLY } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
 import { useTheme } from '@/context/ThemeContext'
-import { fmt } from '@/lib/fmt'
+import { useCurrency } from '@/context/CurrencyContext'
 
 // Returns the pro-rated budgeted amount for a budget item within a date window.
 // Returns 0 if the budget is inactive during the window (ended before or starts after).
@@ -28,6 +28,7 @@ export default function Dashboard() {
   const [selectedMonth, setSelectedMonth] = useState(new Date())
   const [selectedYear, setSelectedYear]   = useState(new Date().getFullYear())
   const { dark } = useTheme()
+  const { fmt } = useCurrency()
   const navigate = useNavigate()
   const today = new Date()
   const currentYear = today.getFullYear()
@@ -364,6 +365,7 @@ function KpiCard({ label, value, icon: Icon, color }) {
 }
 
 function CategoryBudgetBar({ group, onClick }) {
+  const { fmt } = useCurrency()
   const isIncome = Boolean(group.is_income)
   const over = group.pct >= 100
   const warn = group.pct >= 80 && !over && !isIncome

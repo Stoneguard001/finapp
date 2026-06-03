@@ -3,10 +3,11 @@ import { Plus, Pencil, Archive } from 'lucide-react'
 import { getAccounts, archiveAccount } from '@/db/queries/accounts'
 import { query } from '@/db/database'
 import { useQuery } from '@/hooks/useQuery'
-import { fmt } from '@/lib/fmt'
+import { useCurrency } from '@/context/CurrencyContext'
 import AccountModal from '@/components/accounts/AccountModal'
 
 export default function Accounts() {
+  const { fmt } = useCurrency()
   const [editing, setEditing] = useState(null)
   const [refresh, setRefresh] = useState(0)
   const bump = useCallback(() => setRefresh(r => r + 1), [])
