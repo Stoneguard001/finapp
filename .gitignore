@@ -30,3 +30,7 @@ Thumbs.db
 
 # Claude
 .claude/
+
+# Legacy redirect (deploy to stoneguardian.com/finapp manually)
+legacy-redirect/
+docs/splits-design.md
