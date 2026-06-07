@@ -4,6 +4,15 @@ import {
   Database,
   Shield,
   ExternalLink,
+  LayoutDashboard,
+  ArrowLeftRight,
+  PiggyBank,
+  Wallet,
+  Upload,
+  Tag,
+  ListFilter,
+  BarChart2,
+  HelpCircle,
 } from "lucide-react";
 import markIron from "@/assets/mark-iron.svg";
 import markWhite from "@/assets/mark-white.svg";
@@ -38,11 +47,46 @@ export default function About() {
       </div>
 
       <div className="card mb-4 space-y-4">
+        <h2 className="flex items-center gap-2 text-base font-semibold text-slate-900 dark:text-slate-100">
+          <HelpCircle size={18} className="text-brand-500 flex-shrink-0" />
+          What is EvenKeel?
+        </h2>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          EvenKeel is personal budgeting software that runs entirely in your browser.
+          Track your accounts, set monthly spending targets, import bank transactions,
+          and analyse your habits — all without creating an account or sending your
+          data anywhere.
+        </p>
+        <div className="grid grid-cols-2 gap-4">
+        {[
+          { icon: LayoutDashboard, label: "Dashboard",    desc: "Snapshot of balances, recent spending, and budget progress at a glance." },
+          { icon: ArrowLeftRight,  label: "Transactions", desc: "Browse, search, and categorise every transaction across all accounts." },
+          { icon: PiggyBank,       label: "Budgets",      desc: "Set monthly spending targets per category and track how you're tracking." },
+          { icon: Wallet,          label: "Accounts",     desc: "Manage checking, savings, and credit card accounts in one place." },
+          { icon: Upload,          label: "Import",       desc: "Drag-in CSV or Excel exports from your bank — rules auto-categorise them." },
+          { icon: Tag,             label: "Categories",   desc: "Create and colour-code categories and sub-categories to match your life." },
+          { icon: ListFilter,      label: "Rules",        desc: "Keyword rules that automatically tag and categorise incoming transactions." },
+          { icon: BarChart2,       label: "Stats",        desc: "Monthly and trend charts so you can see where your money actually goes." },
+        ].map(({ icon: Icon, label, desc }) => (
+          <div key={label} className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-lg bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center flex-shrink-0">
+              <Icon size={17} className="text-brand-600 dark:text-brand-400" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{desc}</p>
+            </div>
+          </div>
+        ))}
+        </div>
+      </div>
+
+      <div className="card mb-4 space-y-4">
         <div className="flex items-start gap-3">
           <Database size={20} className="text-brand-500 flex-shrink-0 mt-0.5" />
           <div className="space-y-2">
             <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">
-              What is EvenKeel?
+              Why EvenKeel?
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
               I built EvenKeel to help plan my own budget. There are plenty of budgeting
@@ -81,9 +125,18 @@ export default function About() {
               Privacy
             </h2>
             <p className="text-sm text-slate-600 dark:text-slate-400">
-              Nothing leaves your browser. There are no analytics, no telemetry,
-              no cookies, and no external API calls. Your financial data is
+              Nothing leaves your browser. There is no telemetry, no cookies,
+              and no external API calls made by the app. Your financial data is
               yours alone.
+            </p>
+            <p className="text-sm text-slate-600 dark:text-slate-400">
+              The hosted site at{" "}
+              <a href={HOSTED_URL} target="_blank" rel="noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200">
+                evenkeel.online
+              </a>{" "}
+              uses Google Analytics on the landing page to track basic visitor
+              counts. This does not extend into the app — once you open or
+              create a database, no analytics of any kind are active.
             </p>
           </div>
         </div>

@@ -1,14 +1,16 @@
-import { useRef } from 'react'
-import { FolderOpen, FilePlus, HelpCircle, Sparkles, Sun, Moon } from 'lucide-react'
+import { useRef, useState } from 'react'
+import { FolderOpen, FilePlus, HelpCircle, Sparkles, Sun, Moon, ChevronDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useDbStore } from '@/store/dbStore'
 import { useTheme } from '@/context/ThemeContext'
 import appIcon from '@/assets/app-icon.svg'
+import appIconLight from '@/assets/app-icon-light.svg'
 
 export default function Welcome() {
   const { openNew, openFile, openFileHandle } = useDbStore()
   const { dark, toggle } = useTheme()
   const inputRef = useRef()
+  const [newDbOpen, setNewDbOpen] = useState(false)
 
   async function handleOpen() {
     if ('showOpenFilePicker' in window) {
@@ -41,12 +43,17 @@ export default function Welcome() {
       </button>
       <div className="w-full max-w-md space-y-6">
         <div className="text-center">
-          <img src={appIcon} alt="EvenKeel" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
+          <img src={dark ? appIcon : appIconLight} alt="EvenKeel" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
           <h1 className="text-3xl font-bold tracking-tight">
             <span className="text-slate-900 dark:text-slate-100">Even</span><span className="text-brand-500">Keel</span>
           </h1>
           <p className="mt-2 text-slate-500 dark:text-slate-400">Personal budgeting — your data stays yours.</p>
         </div>
+
+        <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+          New here?{' '}
+          <Link to="/about" className="text-brand-500 hover:text-brand-600 dark:hover:text-brand-400 underline transition-colors">Find out more...</Link>
+        </p>
 
         <div className="card space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Open Database</p>
@@ -66,36 +73,44 @@ export default function Welcome() {
         </div>
 
         <div className="card space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">New Database</p>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => openNew(true)}
-              className="flex flex-col items-start gap-2 p-4 rounded-lg bg-brand-900/30 border border-brand-800/50
-                         hover:bg-brand-900/50 transition-colors text-left"
-            >
-              <div className="w-9 h-9 rounded-lg bg-brand-900 flex items-center justify-center">
-                <Sparkles size={18} className="text-brand-400" />
-              </div>
-              <div>
-                <div className="font-medium text-sm text-slate-900 dark:text-slate-100">With Starter Data</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Categories, budgets, tags &amp; rules pre-filled</div>
-              </div>
-            </button>
+          <button
+            onClick={() => setNewDbOpen(o => !o)}
+            className="flex items-center justify-between w-full text-left"
+          >
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">New Database</p>
+            <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ${newDbOpen ? 'rotate-180' : ''}`} />
+          </button>
+          {newDbOpen && (
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => openNew(true)}
+                className="flex flex-col items-start gap-2 p-4 rounded-lg bg-brand-900/30 border border-brand-800/50
+                           hover:bg-brand-900/50 transition-colors text-left"
+              >
+                <div className="w-9 h-9 rounded-lg bg-brand-900 flex items-center justify-center">
+                  <Sparkles size={18} className="text-brand-400" />
+                </div>
+                <div>
+                  <div className="font-medium text-sm text-slate-900 dark:text-slate-100">With Starter Data</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Categories, budgets, tags &amp; rules pre-filled</div>
+                </div>
+              </button>
 
-            <button
-              onClick={() => openNew(false)}
-              className="flex flex-col items-start gap-2 p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50
-                         hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-left"
-            >
-              <div className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
-                <FilePlus size={18} className="text-slate-500 dark:text-slate-400" />
-              </div>
-              <div>
-                <div className="font-medium text-sm text-slate-900 dark:text-slate-100">Blank</div>
-                <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Empty database, nothing pre-filled</div>
-              </div>
-            </button>
-          </div>
+              <button
+                onClick={() => openNew(false)}
+                className="flex flex-col items-start gap-2 p-4 rounded-lg bg-slate-100 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50
+                           hover:bg-slate-200 dark:hover:bg-slate-800 transition-colors text-left"
+              >
+                <div className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
+                  <FilePlus size={18} className="text-slate-500 dark:text-slate-400" />
+                </div>
+                <div>
+                  <div className="font-medium text-sm text-slate-900 dark:text-slate-100">Blank</div>
+                  <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Empty database, nothing pre-filled</div>
+                </div>
+              </button>
+            </div>
+          )}
         </div>
 
         <div className="card space-y-3">
@@ -118,6 +133,10 @@ export default function Welcome() {
               <span>Visit <strong className="text-slate-700 dark:text-slate-300">Budgets</strong> to set monthly spending targets — starter data includes placeholders ready to fill in.</span>
             </li>
           </ol>
+          <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
+            For additional information, see the{' '}
+            <Link to="/help" className="text-brand-500 hover:text-brand-600 dark:hover:text-brand-400 underline transition-colors">help page</Link>.
+          </p>
         </div>
 
         <div className="flex items-center justify-between">

@@ -1,4 +1,4 @@
-import { HelpCircle, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, Link, ChevronDown, ChevronRight, Info, Download } from 'lucide-react'
+import { HelpCircle, Rocket, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, Link, ChevronDown, ChevronRight, Info, Download } from 'lucide-react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useState } from 'react'
 import { downloadSampleDb } from '@/lib/sampleDb'
@@ -70,7 +70,7 @@ export default function Help() {
         </button>
       </div>
 
-      <Section icon={LayoutDashboard} title="Getting Started">
+      <Section icon={Rocket} title="Getting Started">
         <p>EvenKeel stores all your data in a single <strong className="text-slate-800 dark:text-slate-200">.db file</strong> on your device — nothing is sent to a server.</p>
         <div className="space-y-2">
           <Step n="1">On the Welcome screen, click <strong className="text-slate-800 dark:text-slate-200">New Database</strong> to create a fresh file, or <strong className="text-slate-800 dark:text-slate-200">Open Database</strong> to load an existing one.</Step>

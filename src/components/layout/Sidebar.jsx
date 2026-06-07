@@ -7,6 +7,8 @@ import {
 import { useTheme } from '@/context/ThemeContext'
 import markIron from '@/assets/mark-iron.svg'
 import markWhite from '@/assets/mark-white.svg'
+import lockupLight from '@/assets/lockup-light.png'
+import lockupDark from '@/assets/lockup-dark.png'
 
 const NAV = [
   { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard' },
@@ -52,12 +54,7 @@ export default function Sidebar({ mobileOpen, onMobileClose }) {
         >
           {collapsed
             ? <img src={dark ? markWhite : markIron} alt="EvenKeel" className="hidden md:block w-7 h-7" />
-            : <span className="flex-1 flex items-center gap-2">
-                <img src={dark ? markWhite : markIron} alt="" className="w-6 h-6 flex-shrink-0" />
-                <span className="text-lg font-bold tracking-tight leading-none">
-                  <span className="text-slate-900 dark:text-slate-100">Even</span><span className="text-brand-500">Keel</span>
-                </span>
-              </span>
+            : <img src={dark ? lockupDark : lockupLight} alt="EvenKeel" className="flex-1 h-7 object-contain object-left" />
           }
           {/* Mobile close button */}
           <button
