@@ -25,6 +25,9 @@
     "xlsx": "^0.18.5",
     "zustand": "^4.5.5"
   },
+  "overrides": {
+    "puppeteer": "^22"
+  },
   "devDependencies": {
     "@types/react": "^18.3.5",
     "@types/react-dom": "^18.3.0",

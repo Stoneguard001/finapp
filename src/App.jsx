@@ -31,7 +31,7 @@ function AppInner() {
   }, [ready])
 
   useEffect(() => {
-    document.dispatchEvent(new Event('app-rendered'))
+    requestAnimationFrame(() => document.dispatchEvent(new Event('app-rendered')))
   }, [])
 
   if (!ready) {
