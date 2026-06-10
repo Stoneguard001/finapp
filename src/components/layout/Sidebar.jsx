@@ -2,15 +2,16 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, PiggyBank,
-  Upload, BarChart2, Tag, ListFilter, Settings2, HelpCircle, Info, ChevronLeft, ChevronRight, X
+  Upload, BarChart2, Tag, ListFilter, Settings2, HelpCircle, Info, ChevronLeft, ChevronRight, X, Home
 } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
+import { useDbStore } from '@/store/dbStore'
 import markIron from '@/assets/mark-iron.svg'
 import markWhite from '@/assets/mark-white.svg'
 import lockupLight from '@/assets/lockup-light.png'
 import lockupDark from '@/assets/lockup-dark.png'
 
-const NAV = [
+const NAV_APP = [
   { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/transactions', icon: ArrowLeftRight,  label: 'Transactions' },
   { to: '/budgets',      icon: PiggyBank,       label: 'Budgets' },
@@ -24,9 +25,17 @@ const NAV = [
   { to: '/about',        icon: Info,            label: 'About' },
 ]
 
+const NAV_NO_DB = [
+  { to: '/',       icon: Home,       label: 'Welcome' },
+  { to: '/help',   icon: HelpCircle, label: 'Help' },
+  { to: '/about',  icon: Info,       label: 'About' },
+]
+
 export default function Sidebar({ mobileOpen, onMobileClose }) {
   const [collapsed, setCollapsed] = useState(false)
   const { dark } = useTheme()
+  const ready = useDbStore(s => s.ready)
+  const NAV = ready ? NAV_APP : NAV_NO_DB
 
   return (
     <>

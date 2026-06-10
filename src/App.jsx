@@ -4,6 +4,7 @@ import { useDbStore } from '@/store/dbStore'
 import { ToastProvider } from '@/context/ToastContext'
 import Layout from '@/components/layout/Layout'
 import UpdatePrompt from '@/components/UpdatePrompt'
+import CookieBanner from '@/components/CookieBanner'
 import Welcome from '@/pages/Welcome'
 import Dashboard from '@/pages/Dashboard'
 import Transactions from '@/pages/Transactions'
@@ -18,7 +19,7 @@ import Help from '@/pages/Help'
 import About from '@/pages/About'
 
 export default function App() {
-  return <ToastProvider><AppInner /><UpdatePrompt /></ToastProvider>
+  return <ToastProvider><AppInner /><UpdatePrompt /><CookieBanner /></ToastProvider>
 }
 
 function AppInner() {
@@ -29,6 +30,10 @@ function AppInner() {
   useEffect(() => {
     if (ready) navigate('/dashboard', { replace: true })
   }, [ready])
+
+  useEffect(() => {
+    requestAnimationFrame(() => document.dispatchEvent(new Event('app-rendered')))
+  }, [])
 
   if (!ready) {
     if (location.pathname === '/help' || location.pathname === '/about') {

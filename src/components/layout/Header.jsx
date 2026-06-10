@@ -1,14 +1,37 @@
-import { Menu, Save, X, Database, Zap, ZapOff, Sun, Moon } from 'lucide-react'
+import { useRef } from 'react'
+import { Menu, Save, X, Database, Zap, ZapOff, Sun, Moon, FolderOpen, FilePlus } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { useDbStore } from '@/store/dbStore'
 import { useTheme } from '@/context/ThemeContext'
 import { useToast } from '@/context/ToastContext'
 
 export default function Header({ onMenuClick }) {
-  const { dbName, fileHandle, autoSave, ready, save, saveAs, toggleAutoSave, close } = useDbStore()
+  const { dbName, fileHandle, autoSave, ready, save, saveAs, toggleAutoSave, close, openFile, openFileHandle, openNew } = useDbStore()
   const { dark, toggle } = useTheme()
   const { addToast } = useToast()
   const navigate = useNavigate()
+  const fileInputRef = useRef()
+
+  async function handleOpen() {
+    if ('showOpenFilePicker' in window) {
+      try {
+        const [handle] = await window.showOpenFilePicker({
+          types: [{ description: 'SQLite Database', accept: { 'application/x-sqlite3': ['.sqlite', '.db'] } }]
+        })
+        await openFileHandle(handle)
+        return
+      } catch (e) {
+        if (e.name === 'AbortError') return
+      }
+    }
+    fileInputRef.current.click()
+  }
+
+  async function handleFileInput(e) {
+    const file = e.target.files?.[0]
+    if (file) await openFile(file)
+    e.target.value = ''
+  }
 
   async function handleToggleAutoSave() {
     const wasOn = autoSave
@@ -69,6 +92,38 @@ export default function Header({ onMenuClick }) {
       </div>
 
       <div className="flex items-center gap-1 flex-shrink-0">
+        {ready ? (
+          <>
+            <button
+              onClick={handleToggleAutoSave}
+              title={autoSave ? 'Auto-save on — click to disable' : 'Auto-save off — click to enable'}
+              className={`btn-ghost text-xs hidden sm:flex items-center gap-1.5 ${autoSave ? 'text-brand-400' : 'text-slate-400 dark:text-slate-500'}`}
+            >
+              {autoSave ? <Zap size={13} /> : <ZapOff size={13} />}
+              Auto
+            </button>
+            <button onClick={handleSave}   className="btn-ghost text-xs hidden sm:flex"><Save size={14} /> Save</button>
+            <button onClick={handleSaveAs} className="btn-ghost text-xs hidden sm:flex"><Save size={14} /> Save As</button>
+            <button
+              onClick={handleToggleAutoSave}
+              title={autoSave ? 'Auto-save on — click to disable' : 'Auto-save off — click to enable'}
+              className={`btn-ghost text-xs sm:hidden ${autoSave ? 'text-brand-400' : 'text-slate-400 dark:text-slate-500'}`}
+            >
+              {autoSave ? <Zap size={14} /> : <ZapOff size={14} />}
+            </button>
+            <button onClick={handleSave} className="btn-ghost text-xs sm:hidden" title="Save"><Save size={14} /></button>
+            <button onClick={handleClose} className="btn-ghost text-xs text-red-400 hover:text-red-300">
+              <X size={14} /><span className="hidden sm:inline">Close</span>
+            </button>
+          </>
+        ) : (
+          <>
+            <button onClick={handleOpen} title="Load an existing sqlite file" className="btn-ghost text-xs hidden sm:flex"><FolderOpen size={14} /> Open</button>
+            <button onClick={() => openNew(false)} title="Create a new sqlite file" className="btn-ghost text-xs hidden sm:flex"><FilePlus size={14} /> New</button>
+            <button onClick={handleOpen} title="Load an existing sqlite file" className="btn-ghost text-xs sm:hidden"><FolderOpen size={14} /></button>
+            <button onClick={() => openNew(false)} title="Create a new sqlite file" className="btn-ghost text-xs sm:hidden"><FilePlus size={14} /></button>
+          </>
+        )}
         <button
           onClick={toggle}
           title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
@@ -76,28 +131,8 @@ export default function Header({ onMenuClick }) {
         >
           {dark ? <Sun size={14} /> : <Moon size={14} />}
         </button>
-        <button
-          onClick={handleToggleAutoSave}
-          title={autoSave ? 'Auto-save on — click to disable' : 'Auto-save off — click to enable'}
-          className={`btn-ghost text-xs hidden sm:flex items-center gap-1.5 ${!ready ? disabledCls : autoSave ? 'text-brand-400' : 'text-slate-400 dark:text-slate-500'}`}
-        >
-          {autoSave ? <Zap size={13} /> : <ZapOff size={13} />}
-          Auto
-        </button>
-        <button onClick={handleSave}   className={`btn-ghost text-xs hidden sm:flex ${!ready ? disabledCls : ''}`}><Save size={14} /> Save</button>
-        <button onClick={handleSaveAs} className={`btn-ghost text-xs hidden sm:flex ${!ready ? disabledCls : ''}`}><Save size={14} /> Save As</button>
-        <button
-          onClick={handleToggleAutoSave}
-          title={autoSave ? 'Auto-save on — click to disable' : 'Auto-save off — click to enable'}
-          className={`btn-ghost text-xs sm:hidden ${!ready ? disabledCls : autoSave ? 'text-brand-400' : 'text-slate-400 dark:text-slate-500'}`}
-        >
-          {autoSave ? <Zap size={14} /> : <ZapOff size={14} />}
-        </button>
-        <button onClick={handleSave} className={`btn-ghost text-xs sm:hidden ${!ready ? disabledCls : ''}`} title="Save"><Save size={14} /></button>
-        <button onClick={handleClose} className={`btn-ghost text-xs ${!ready ? disabledCls : 'text-red-400 hover:text-red-300'}`}>
-          <X size={14} /><span className="hidden sm:inline">Close</span>
-        </button>
       </div>
+      <input ref={fileInputRef} type="file" accept=".sqlite,.db" className="hidden" onChange={handleFileInput} />
     </header>
   )
 }

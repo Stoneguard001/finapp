@@ -14,6 +14,7 @@ import {
   BarChart2,
   HelpCircle,
 } from "lucide-react";
+import { Helmet } from "react-helmet-async";
 import markIron from "@/assets/mark-iron.svg";
 import markWhite from "@/assets/mark-white.svg";
 
@@ -24,6 +25,10 @@ const HOSTED_URL = "https://evenkeel.online";
 export default function About() {
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
+      <Helmet>
+        <title>About EvenKeel — Personal Budget Tracker</title>
+        <meta name="description" content="EvenKeel is a privacy-first budgeting app with accounts, transaction import, budgets, split transactions, categories, rules, and reports — all stored locally." />
+      </Helmet>
       <div className="flex items-center gap-3 mb-6">
         <img src={markIron} alt="EvenKeel" className="w-9 h-9 dark:hidden" />
         <img src={markWhite} alt="EvenKeel" className="w-9 h-9 hidden dark:block" />
