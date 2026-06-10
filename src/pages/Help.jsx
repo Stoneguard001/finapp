@@ -1,6 +1,7 @@
 import { HelpCircle, Rocket, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, Link, ChevronDown, ChevronRight, Info, Download } from 'lucide-react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { downloadSampleDb } from '@/lib/sampleDb'
 
 function Section({ icon: Icon, title, children }) {
@@ -47,6 +48,10 @@ export default function Help() {
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4">
+      <Helmet>
+        <title>Help & Guide — EvenKeel Budget Tracker</title>
+        <meta name="description" content="Step-by-step guide to EvenKeel: set up accounts, import transactions from CSV, create monthly budgets, manage categories and rules." />
+      </Helmet>
       <div className="flex items-center gap-3 mb-6">
         <HelpCircle size={28} className="text-brand-500" />
         <div>

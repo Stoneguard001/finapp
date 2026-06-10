@@ -30,6 +30,10 @@ function AppInner() {
     if (ready) navigate('/dashboard', { replace: true })
   }, [ready])
 
+  useEffect(() => {
+    document.dispatchEvent(new Event('app-rendered'))
+  }, [])
+
   if (!ready) {
     if (location.pathname === '/help' || location.pathname === '/about') {
       return (

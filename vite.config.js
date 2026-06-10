@@ -1,11 +1,28 @@
+import { createRequire } from 'module'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 
+const require = createRequire(import.meta.url)
+const vitePrerender = require('vite-plugin-prerender')
+const PuppeteerRenderer = vitePrerender.PuppeteerRenderer
+
 export default defineConfig({
   plugins: [
     react(),
+    vitePrerender({
+      staticDir: path.join(__dirname, 'dist'),
+      routes: ['/', '/about', '/help'],
+      renderer: new PuppeteerRenderer({
+        renderAfterDocumentEvent: 'app-rendered',
+        skipThirdPartyRequests: true,
+      }),
+      postProcess(route) {
+        route.route = route.originalRoute
+        return route
+      },
+    }),
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'icons/*.png'],

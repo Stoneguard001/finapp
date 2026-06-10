@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { Helmet } from 'react-helmet-async'
 import { FolderOpen, FilePlus, HelpCircle, Sparkles, Sun, Moon, ChevronDown } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useDbStore } from '@/store/dbStore'
@@ -34,6 +35,10 @@ export default function Welcome() {
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-6">
+      <Helmet>
+        <title>EvenKeel — Personal Budget Tracker</title>
+        <meta name="description" content="Simple, private budgeting that keeps your data on your device. No accounts, no sync, no cloud." />
+      </Helmet>
       <button
         onClick={toggle}
         title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
