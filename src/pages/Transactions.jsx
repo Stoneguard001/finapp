@@ -140,12 +140,13 @@ export default function Transactions() {
   const allFilteredSelected  = filtered.length > 0 && filtered.every(t => selectedIds.has(t.id))
   const someFilteredSelected = filtered.some(t => selectedIds.has(t.id))
 
-  const bulkCategoryBudgets = useMemo(() =>
-    bulkCategory !== NC && bulkCategory !== ''
+  const bulkCategoryBudgets = useMemo(() => {
+    const pool = bulkCategory !== NC && bulkCategory !== ''
       ? allBudgets.filter(b => b.category_id === Number(bulkCategory))
-      : [],
-    [bulkCategory, allBudgets]
-  )
+      : allBudgets
+    const seen = new Set()
+    return pool.filter(b => seen.has(b.name) ? false : seen.add(b.name))
+  }, [bulkCategory, allBudgets])
 
   useEffect(() => {
     if (selectAllRef.current) {
@@ -169,17 +170,43 @@ export default function Transactions() {
     })
   }
 
+  function resolveBudgetId(txDate, txCategoryId, budgetName) {
+    const effectiveCatId = bulkCategory !== NC
+      ? (bulkCategory ? Number(bulkCategory) : null)
+      : txCategoryId
+    const candidates = allBudgets.filter(b =>
+      b.name === budgetName &&
+      (effectiveCatId == null || b.category_id === effectiveCatId)
+    )
+    if (candidates.length === 0) return null
+    if (candidates.length === 1) return candidates[0].id
+    const exact = candidates.find(b =>
+      b.start_date <= txDate && (b.end_date == null || b.end_date >= txDate)
+    )
+    if (exact) return exact.id
+    const past = candidates
+      .filter(b => b.start_date <= txDate)
+      .sort((a, z) => z.start_date.localeCompare(a.start_date))
+    if (past.length > 0) return past[0].id
+    return candidates.sort((a, z) => a.start_date.localeCompare(z.start_date))[0].id
+  }
+
   function applyBulk() {
-    const fields = {}
-    if (bulkCategory !== NC) fields.category_id    = bulkCategory ? Number(bulkCategory) : null
-    if (bulkBudget   !== NC) fields.budget_item_id = bulkBudget   ? Number(bulkBudget)   : null
-    if (!Object.keys(fields).length) return
+    if (bulkCategory === NC && bulkBudget === NC) return
     const splitIds = []
+    let updated = 0
     selectedIds.forEach(id => {
       const tx = transactions.find(t => t.id === id)
       if (tx?.split_count > 0) { splitIds.push(id); return }
+      const fields = {}
+      if (bulkCategory !== NC) fields.category_id = bulkCategory ? Number(bulkCategory) : null
+      if (bulkBudget   !== NC) fields.budget_item_id = bulkBudget ? resolveBudgetId(tx.date, tx.category_id, bulkBudget) : null
       updateTransaction(id, fields)
+      updated++
     })
+    if (updated > 0) {
+      addToast(`${updated} transaction${updated !== 1 ? 's' : ''} updated`, 'success')
+    }
     if (splitIds.length > 0) {
       addToast(`${splitIds.length} split transaction${splitIds.length > 1 ? 's' : ''} skipped — edit individually to change category`, 'info')
     }
@@ -375,7 +402,7 @@ export default function Transactions() {
             <option value="">Uncategorized</option>
             {categories.map(c => <option key={c.id} value={c.id}>{c.icon} {c.name}</option>)}
           </select>
-          {bulkCategoryBudgets.length > 0 && (
+          {allBudgets.length > 0 && (
             <select
               className="input py-1 text-sm"
               value={bulkBudget}
@@ -383,7 +410,7 @@ export default function Transactions() {
             >
               <option value={NC}>Budget: no change</option>
               <option value="">— none —</option>
-              {bulkCategoryBudgets.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+              {bulkCategoryBudgets.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
             </select>
           )}
           <button

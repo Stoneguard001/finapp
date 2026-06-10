@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, Wallet, PiggyBank,
-  Upload, Tag, ListFilter, Settings2, HelpCircle, Info, ChevronLeft, ChevronRight, X
+  Upload, BarChart2, Tag, ListFilter, Settings2, HelpCircle, Info, ChevronLeft, ChevronRight, X
 } from 'lucide-react'
 import { useTheme } from '@/context/ThemeContext'
 import markIron from '@/assets/mark-iron.svg'
@@ -16,6 +16,7 @@ const NAV = [
   { to: '/budgets',      icon: PiggyBank,       label: 'Budgets' },
   { to: '/accounts',     icon: Wallet,          label: 'Accounts' },
   { to: '/import',       icon: Upload,          label: 'Import' },
+  { to: '/reports',      icon: BarChart2,       label: 'Reports' },
   { to: '/categories',   icon: Tag,             label: 'Categories' },
   { to: '/rules',        icon: ListFilter,      label: 'Rules' },
   { to: '/settings',     icon: Settings2,       label: 'Settings' },
