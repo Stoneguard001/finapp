@@ -3,8 +3,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import { readFileSync } from 'fs'
 
 const require = createRequire(import.meta.url)
+const { version } = JSON.parse(readFileSync('./package.json', 'utf-8'))
 const vitePrerender = require('vite-plugin-prerender')
 const PuppeteerRenderer = vitePrerender.PuppeteerRenderer
 
@@ -46,6 +48,9 @@ export default defineConfig({
       }
     })
   ],
+  define: {
+    'import.meta.env.VITE_APP_VERSION': JSON.stringify(version)
+  },
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') }
   },

@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
-import { FolderOpen, FilePlus, HelpCircle, Sparkles, Sun, Moon, ChevronDown } from 'lucide-react'
+import { FolderOpen, FilePlus, HelpCircle, Sparkles, Sun, Moon, ChevronDown, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, BarChart2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useDbStore } from '@/store/dbStore'
 import { useTheme } from '@/context/ThemeContext'
@@ -39,14 +39,20 @@ export default function Welcome() {
         <title>EvenKeel — Personal Budget Tracker</title>
         <meta name="description" content="Simple, private budgeting that keeps your data on your device. No accounts, no sync, no cloud." />
       </Helmet>
-      <button
-        onClick={toggle}
-        title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-        className="fixed top-3 right-3 btn-ghost"
-      >
-        {dark ? <Sun size={16} /> : <Moon size={16} />}
-      </button>
-      <div className="w-full max-w-md space-y-6">
+      <div className="fixed top-3 right-3 flex items-center gap-1">
+        <button onClick={handleOpen} title="Load an existing sqlite file" className="btn-ghost text-xs hidden sm:flex"><FolderOpen size={14} /> Open</button>
+        <button onClick={() => openNew(false)} title="Create a new sqlite file" className="btn-ghost text-xs hidden sm:flex"><FilePlus size={14} /> New</button>
+        <button onClick={handleOpen} title="Load an existing sqlite file" className="btn-ghost text-xs sm:hidden"><FolderOpen size={14} /></button>
+        <button onClick={() => openNew(false)} title="Create a new sqlite file" className="btn-ghost text-xs sm:hidden"><FilePlus size={14} /></button>
+        <button
+          onClick={toggle}
+          title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+          className="btn-ghost"
+        >
+          {dark ? <Sun size={16} /> : <Moon size={16} />}
+        </button>
+      </div>
+      <div className="w-full max-w-md sm:max-w-2xl space-y-6">
         <div className="text-center">
           <img src={dark ? appIcon : appIconLight} alt="EvenKeel" className="w-16 h-16 mx-auto mb-4 rounded-2xl" />
           <h1 className="text-3xl font-bold tracking-tight">
@@ -55,10 +61,39 @@ export default function Welcome() {
           <p className="mt-2 text-slate-500 dark:text-slate-400">Personal budgeting — your data stays yours.</p>
         </div>
 
-        <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-          New here?{' '}
-          <Link to="/about" className="text-brand-500 hover:text-brand-600 dark:hover:text-brand-400 underline transition-colors">Find out more...</Link>
-        </p>
+        <div className="card space-y-4">
+          <h2 className="text-base font-semibold text-slate-900 dark:text-slate-100">What is EvenKeel?</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            EvenKeel is personal budgeting software that runs entirely in your browser.
+            Track your accounts, set monthly spending targets, import bank transactions,
+            and analyse your habits — all without creating an account or sending your data anywhere.
+          </p>
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { icon: LayoutDashboard, label: 'Dashboard',    desc: 'Balances, recent spending, and budget progress at a glance.' },
+              { icon: ArrowLeftRight,  label: 'Transactions', desc: 'Browse, search, and categorise every transaction.' },
+              { icon: PiggyBank,       label: 'Budgets',      desc: 'Set monthly spending targets per category.' },
+              { icon: Wallet,          label: 'Accounts',     desc: 'Manage checking, savings, and credit cards in one place.' },
+              { icon: Upload,          label: 'Import',       desc: 'Drag-in CSV or Excel exports from your bank.' },
+              { icon: Tag,             label: 'Categories',   desc: 'Colour-coded categories and sub-categories.' },
+              { icon: ListFilter,      label: 'Rules',        desc: 'Auto-tag and categorise incoming transactions.' },
+              { icon: BarChart2,       label: 'Stats',        desc: 'Monthly and trend charts for your spending.' },
+            ].map(({ icon: Icon, label, desc }) => (
+              <div key={label} className="flex items-start gap-2">
+                <div className="w-8 h-8 rounded-lg bg-brand-100 dark:bg-brand-900/40 flex items-center justify-center flex-shrink-0">
+                  <Icon size={15} className="text-brand-600 dark:text-brand-400" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">{desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="text-sm text-slate-500 dark:text-slate-400 text-center pt-1">
+            <Link to="/about" className="text-brand-500 hover:text-brand-600 dark:hover:text-brand-400 underline transition-colors">Find out more...</Link>
+          </p>
+        </div>
 
         <div className="card space-y-3">
           <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Open Database</p>
@@ -118,40 +153,22 @@ export default function Welcome() {
           )}
         </div>
 
-        <div className="card space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Getting started</p>
-          <ol className="space-y-2 text-sm text-slate-600 dark:text-slate-400">
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-bold">1</span>
-              <span>Create a new database or open an existing one above.</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-bold">2</span>
-              <span>Add your accounts (checking, savings, credit cards) under <strong className="text-slate-700 dark:text-slate-300">Accounts</strong>.</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-bold">3</span>
-              <span>Import transactions from your bank's CSV or Excel export via <strong className="text-slate-700 dark:text-slate-300">Import</strong>.</span>
-            </li>
-            <li className="flex gap-3">
-              <span className="flex-shrink-0 w-5 h-5 rounded-full bg-brand-100 dark:bg-brand-900/50 text-brand-600 dark:text-brand-400 flex items-center justify-center text-xs font-bold">4</span>
-              <span>Visit <strong className="text-slate-700 dark:text-slate-300">Budgets</strong> to set monthly spending targets — starter data includes placeholders ready to fill in.</span>
-            </li>
-          </ol>
-          <p className="text-sm text-slate-600 dark:text-slate-400 text-center">
-            For additional information, see the{' '}
-            <Link to="/help" className="text-brand-500 hover:text-brand-600 dark:hover:text-brand-400 underline transition-colors">help page</Link>.
-          </p>
-        </div>
+        <p className="text-sm text-slate-500 dark:text-slate-400 text-center">
+          For help getting started,{' '}
+          <Link to="/help" className="text-brand-500 hover:text-brand-600 dark:hover:text-brand-400 underline transition-colors">see the help page</Link>.
+        </p>
 
         <div className="flex items-center justify-between">
           <p className="text-xs text-slate-400 dark:text-slate-600">
-            100% local — no account, no server, no tracking.
+            Your data is 100% local — no account, no server.
           </p>
-          <Link to="/help" className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
-            <HelpCircle size={13} />
-            Help
-          </Link>
+          <div className="flex flex-col items-end gap-0.5">
+            <Link to="/help" className="flex items-center gap-1.5 text-xs text-slate-400 dark:text-slate-500 hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
+              <HelpCircle size={13} />
+              Help
+            </Link>
+            <span className="text-xs text-slate-400 dark:text-slate-600">v{import.meta.env.VITE_APP_VERSION}</span>
+          </div>
         </div>
       </div>
 
