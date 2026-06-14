@@ -251,9 +251,11 @@ export default function Budgets() {
       // Split portions that belong to this category/budget item
       const splitRows = yearSplits
         .filter(s =>
-          s.category_id === item.category_id &&
           s.date >= viewStart && s.date <= viewEnd &&
-          (isIncome ? s.amount > 0 : s.amount < 0)
+          (isIncome ? s.amount > 0 : s.amount < 0) && (
+            s.budget_item_id === item.id ||
+            (s.category_id === item.category_id && !s.budget_item_id)
+          )
         )
         .sort((a, b) => b.date.localeCompare(a.date))
 
