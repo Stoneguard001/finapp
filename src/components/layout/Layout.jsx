@@ -2,6 +2,7 @@ import { useState } from 'react'
 import Sidebar from './Sidebar'
 import Header from './Header'
 import Toaster from '@/components/Toaster'
+import ChatPanel from '@/components/ai/ChatPanel'
 
 export default function Layout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -16,6 +17,7 @@ export default function Layout({ children }) {
         </main>
       </div>
       <Toaster />
+      <ChatPanel />
     </div>
   )
 }

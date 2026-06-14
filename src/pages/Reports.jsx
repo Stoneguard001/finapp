@@ -354,10 +354,6 @@ export default function Reports() {
         <h1 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Reports</h1>
       </div>
 
-      <p className="text-sm text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-4 py-2.5">
-        Note: This section is new and still working out a few kinks.
-      </p>
-
       {/* Controls */}
       <div className="card flex flex-wrap items-center gap-3">
         {/* Report type */}
@@ -523,22 +519,33 @@ export default function Reports() {
                 })}
               </tbody>
               <tfoot>
-                <tr className="bg-slate-50 dark:bg-slate-800/50 font-semibold">
-                  <td className="sticky left-0 z-10 bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 text-slate-700 dark:text-slate-300 border-t-2 border-r border-slate-300 dark:border-slate-600">
-                    Total
-                  </td>
-                  {months.map(m => (
-                    <td key={m} className="px-3 py-2.5 text-right text-slate-800 dark:text-slate-200 border-t-2 border-slate-300 dark:border-slate-600">
-                      {colTotals[m] === 0 ? <span className="text-slate-300 dark:text-slate-600">—</span> : fmt(colTotals[m])}
+                {reportType === 'tags' ? (
+                  <tr className="bg-slate-50 dark:bg-slate-800/50">
+                    <td
+                      colSpan={months.length + 3}
+                      className="sticky left-0 px-4 py-2.5 text-xs text-slate-400 dark:text-slate-500 border-t-2 border-slate-300 dark:border-slate-600 italic"
+                    >
+                      Month totals are not shown — transactions with multiple tags are counted once per tag.
                     </td>
-                  ))}
-                  <td className="px-3 py-2.5 text-right text-slate-800 dark:text-slate-200 border-t-2 border-l border-slate-300 dark:border-slate-600">
-                    {fmt(grandTotal)}
-                  </td>
-                  <td className="px-3 py-2.5 text-right text-slate-500 dark:text-slate-400 border-t-2 border-slate-300 dark:border-slate-600">
-                    {months.length ? fmt(grandTotal / months.length) : '—'}
-                  </td>
-                </tr>
+                  </tr>
+                ) : (
+                  <tr className="bg-slate-50 dark:bg-slate-800/50 font-semibold">
+                    <td className="sticky left-0 z-10 bg-slate-50 dark:bg-slate-800/50 px-4 py-2.5 text-slate-700 dark:text-slate-300 border-t-2 border-r border-slate-300 dark:border-slate-600">
+                      Total
+                    </td>
+                    {months.map(m => (
+                      <td key={m} className="px-3 py-2.5 text-right text-slate-800 dark:text-slate-200 border-t-2 border-slate-300 dark:border-slate-600">
+                        {colTotals[m] === 0 ? <span className="text-slate-300 dark:text-slate-600">—</span> : fmt(colTotals[m])}
+                      </td>
+                    ))}
+                    <td className="px-3 py-2.5 text-right text-slate-800 dark:text-slate-200 border-t-2 border-l border-slate-300 dark:border-slate-600">
+                      {fmt(grandTotal)}
+                    </td>
+                    <td className="px-3 py-2.5 text-right text-slate-500 dark:text-slate-400 border-t-2 border-slate-300 dark:border-slate-600">
+                      {months.length ? fmt(grandTotal / months.length) : '—'}
+                    </td>
+                  </tr>
+                )}
               </tfoot>
             </table>
           </div>

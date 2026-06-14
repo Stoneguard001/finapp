@@ -1,4 +1,4 @@
-import { HelpCircle, Rocket, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, Link, ChevronDown, ChevronRight, Info, Download } from 'lucide-react'
+import { HelpCircle, Rocket, LayoutDashboard, ArrowLeftRight, PiggyBank, Wallet, Upload, Tag, ListFilter, Link, ChevronDown, ChevronRight, Info, Download, Bot } from 'lucide-react'
 import { Link as RouterLink } from 'react-router-dom'
 import { useState } from 'react'
 import { Helmet } from 'react-helmet-async'
@@ -246,6 +246,57 @@ export default function Help() {
           <li>Rules can also be created directly from the import preview by clicking <strong className="text-slate-800 dark:text-slate-200">Save as Rule</strong> on any transaction row</li>
         </ul>
         <Tip>Higher priority numbers are matched first. Put specific rules (like exact merchant names) at a higher priority than broad ones.</Tip>
+      </Section>
+
+      <Section icon={Bot} title="AI Assistant">
+        <p>The AI Assistant lets you ask plain-language questions about your finances — spending trends, budget health, month comparisons, and more. It reads a summary of your data from the local database and sends it to the AI provider you choose.</p>
+
+        <div className="space-y-2">
+          <Step n="1">Go to <strong className="text-slate-800 dark:text-slate-200">Settings → AI Assistant</strong>, choose a provider, paste your API key, select a model, and click <strong className="text-slate-800 dark:text-slate-200">Save</strong>.</Step>
+          <Step n="2">Click the <strong className="text-slate-800 dark:text-slate-200">Bot button</strong> in the bottom-right corner of any page to open the chat panel.</Step>
+          <Step n="3">Type a question or pick one of the suggested prompts to get started.</Step>
+        </div>
+
+        <Tip>Your API key is stored only in your local database and sent directly to the provider — it never touches any EvenKeel server.</Tip>
+
+        <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Getting an API Key</p>
+
+          <div className="rounded-lg border border-slate-200 dark:border-slate-700 divide-y divide-slate-200 dark:divide-slate-700 overflow-hidden text-xs">
+            <div className="px-3 py-2.5 flex items-start gap-3">
+              <span className="font-semibold text-slate-700 dark:text-slate-300 w-28 flex-shrink-0">Ollama (Local)</span>
+              <span>Free, private, runs on your machine — no account needed. See setup steps below.</span>
+            </div>
+            <div className="px-3 py-2.5 flex items-start gap-3">
+              <span className="font-semibold text-slate-700 dark:text-slate-300 w-28 flex-shrink-0">Groq</span>
+              <span>Sign in at <a href="https://console.groq.com" target="_blank" rel="noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200">console.groq.com</a>, go to <strong className="text-slate-700 dark:text-slate-300">API Keys</strong>, and create a key. Generous free tier, no credit card required.</span>
+            </div>
+            <div className="px-3 py-2.5 flex items-start gap-3">
+              <span className="font-semibold text-slate-700 dark:text-slate-300 w-28 flex-shrink-0">Claude (Anthropic)</span>
+              <span>Sign in at <a href="https://console.anthropic.com" target="_blank" rel="noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200">console.anthropic.com</a>, go to <strong className="text-slate-700 dark:text-slate-300">API Keys</strong>, and click <strong className="text-slate-700 dark:text-slate-300">Create Key</strong>. New accounts include free credits to get started.</span>
+            </div>
+            <div className="px-3 py-2.5 flex items-start gap-3">
+              <span className="font-semibold text-slate-700 dark:text-slate-300 w-28 flex-shrink-0">ChatGPT (OpenAI)</span>
+              <span>Sign in at <a href="https://platform.openai.com/api-keys" target="_blank" rel="noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200">platform.openai.com/api-keys</a> and click <strong className="text-slate-700 dark:text-slate-300">Create new secret key</strong>. Requires a payment method.</span>
+            </div>
+            <div className="px-3 py-2.5 flex items-start gap-3">
+              <span className="font-semibold text-slate-700 dark:text-slate-300 w-28 flex-shrink-0">Gemini (Google)</span>
+              <span>Sign in at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200">aistudio.google.com/apikey</a> and click <strong className="text-slate-700 dark:text-slate-300">Create API key</strong>. Quota limits vary by project; adding billing unlocks higher limits.</span>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-200 dark:border-slate-700 pt-3 space-y-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400 dark:text-slate-500">Setting Up Ollama</p>
+            <div className="space-y-2">
+              <Step n="1">Download and install Ollama from <a href="https://ollama.com" target="_blank" rel="noreferrer" className="text-brand-600 dark:text-brand-400 underline hover:text-brand-800 dark:hover:text-brand-200">ollama.com</a>. It runs as a background service on your machine.</Step>
+              <Step n="2">Open a terminal and pull a model — for example: <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">ollama pull llama3.2</code>. Other good options: <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">mistral</code>, <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">qwen2.5</code>.</Step>
+              <Step n="3">In EvenKeel Settings, select <strong className="text-slate-800 dark:text-slate-200">Ollama (Local)</strong> as the provider and type the model name you pulled (e.g. <code className="font-mono bg-slate-100 dark:bg-slate-800 px-1 rounded">llama3.2</code>). No API key needed.</Step>
+              <Step n="4">Make sure Ollama is running before opening the chat panel — it starts automatically at login on most systems after installation.</Step>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-slate-400 dark:text-slate-500">The AI only sees aggregated summaries of your data (monthly totals, category breakdowns, budget progress) — raw transaction descriptions are not sent.</p>
       </Section>
 
       <div className="mt-2 flex justify-center">

@@ -5,7 +5,7 @@ import { format, startOfMonth, endOfMonth, addMonths, subMonths, isSameMonth } f
 import { getTransactions, deleteTransaction, updateTransaction, getSplitsForDateRange } from '@/db/queries/transactions'
 import { getCategories } from '@/db/queries/categories'
 import { getAccounts } from '@/db/queries/accounts'
-import { getTags } from '@/db/queries/tags'
+import { getTags, setTransactionTags } from '@/db/queries/tags'
 import { getBudgets } from '@/db/queries/budgets'
 import { useQuery } from '@/hooks/useQuery'
 import { fmtDate } from '@/lib/fmt'
@@ -48,6 +48,7 @@ export default function Transactions() {
   const [selectedIds, setSelectedIds] = useState(new Set())
   const [bulkCategory, setBulkCategory] = useState(NC)
   const [bulkBudget, setBulkBudget]     = useState(NC)
+  const [bulkTag, setBulkTag]           = useState(NC)
   const selectAllRef = useRef(null)
 
   const isCurrentMonth = isSameMonth(selectedMonth, new Date())
@@ -192,16 +193,23 @@ export default function Transactions() {
   }
 
   function applyBulk() {
-    if (bulkCategory === NC && bulkBudget === NC) return
+    if (bulkCategory === NC && bulkBudget === NC && bulkTag === NC) return
     const splitIds = []
     let updated = 0
     selectedIds.forEach(id => {
       const tx = transactions.find(t => t.id === id)
-      if (tx?.split_count > 0) { splitIds.push(id); return }
-      const fields = {}
-      if (bulkCategory !== NC) fields.category_id = bulkCategory ? Number(bulkCategory) : null
-      if (bulkBudget   !== NC) fields.budget_item_id = bulkBudget ? resolveBudgetId(tx.date, tx.category_id, bulkBudget) : null
-      updateTransaction(id, fields)
+      // Tags apply to all transactions, including splits
+      if (bulkTag !== NC) {
+        setTransactionTags(id, bulkTag ? [Number(bulkTag)] : [])
+      }
+      // Category/budget skip splits
+      if (bulkCategory !== NC || bulkBudget !== NC) {
+        if (tx?.split_count > 0) { splitIds.push(id); return }
+        const fields = {}
+        if (bulkCategory !== NC) fields.category_id = bulkCategory ? Number(bulkCategory) : null
+        if (bulkBudget   !== NC) fields.budget_item_id = bulkBudget ? resolveBudgetId(tx.date, tx.category_id, bulkBudget) : null
+        updateTransaction(id, fields)
+      }
       updated++
     })
     if (updated > 0) {
@@ -213,6 +221,7 @@ export default function Transactions() {
     setSelectedIds(new Set())
     setBulkCategory(NC)
     setBulkBudget(NC)
+    setBulkTag(NC)
     bump()
   }
 
@@ -413,10 +422,21 @@ export default function Transactions() {
               {bulkCategoryBudgets.map(b => <option key={b.id} value={b.name}>{b.name}</option>)}
             </select>
           )}
+          {tags.length > 0 && (
+            <select
+              className="input py-1 text-sm"
+              value={bulkTag}
+              onChange={e => setBulkTag(e.target.value)}
+            >
+              <option value={NC}>Tag: no change</option>
+              <option value="">— remove all —</option>
+              {tags.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+            </select>
+          )}
           <button
             className="btn-primary py-1 px-3 text-sm shrink-0"
             onClick={applyBulk}
-            disabled={bulkCategory === NC && bulkBudget === NC}
+            disabled={bulkCategory === NC && bulkBudget === NC && bulkTag === NC}
           >
             Apply
           </button>
