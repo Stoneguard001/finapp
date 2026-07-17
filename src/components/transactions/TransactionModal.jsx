@@ -9,6 +9,10 @@ import TagPicker from '@/components/TagPicker'
 import SearchableSelect from '@/components/SearchableSelect'
 import { useCurrency } from '@/context/CurrencyContext'
 
+function isBudgetActive(budget, date) {
+  return budget.start_date <= date && (!budget.end_date || budget.end_date >= date)
+}
+
 export default function TransactionModal({ transaction, categories, accounts, tags, onClose, onSave }) {
   const isNew = !transaction.id
   const { fmt } = useCurrency()
@@ -47,6 +51,19 @@ export default function TransactionModal({ transaction, categories, accounts, ta
   const remaining   = Math.round((totalAmount - splitSum) * 100) / 100
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }))
+
+  function handleDateChange(newDate) {
+    setForm(f => {
+      const stillValid = !f.budget_item_id ||
+        allBudgets.some(b => b.id === Number(f.budget_item_id) && isBudgetActive(b, newDate))
+      return { ...f, date: newDate, budget_item_id: stillValid ? f.budget_item_id : '' }
+    })
+    setSplits(prev => prev.map(s => {
+      if (!s.budget_item_id) return s
+      const stillValid = allBudgets.some(b => b.id === Number(s.budget_item_id) && isBudgetActive(b, newDate))
+      return stillValid ? s : { ...s, budget_item_id: '' }
+    }))
+  }
 
   function handleCategoryChange(catId) {
     const cat = categories.find(c => c.id === Number(catId))
@@ -119,7 +136,7 @@ export default function TransactionModal({ transaction, categories, accounts, ta
   ], [categories])
 
   const categoryBudgets = form.category_id
-    ? allBudgets.filter(b => b.category_id === Number(form.category_id))
+    ? allBudgets.filter(b => b.category_id === Number(form.category_id) && isBudgetActive(b, form.date))
     : []
 
   const splitBalanced = Math.abs(remaining) < 0.005
@@ -165,7 +182,7 @@ export default function TransactionModal({ transaction, categories, accounts, ta
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="label">Date *</label>
-          <input type="date" className="input" value={form.date} onChange={e => set('date', e.target.value)} />
+          <input type="date" className="input" value={form.date} onChange={e => handleDateChange(e.target.value)} />
         </div>
         <div>
           <label className="label">Amount *</label>
@@ -201,6 +218,7 @@ export default function TransactionModal({ transaction, categories, accounts, ta
                 categories={categories}
                 categoryOptions={categoryOptions}
                 allBudgets={allBudgets}
+                date={form.date}
                 onUpdate={updateSplit}
                 onRemove={removeSplit}
               />
@@ -286,9 +304,9 @@ export default function TransactionModal({ transaction, categories, accounts, ta
   )
 }
 
-function SplitRow({ split, idx, categories, categoryOptions, allBudgets, onUpdate, onRemove }) {
+function SplitRow({ split, idx, categories, categoryOptions, allBudgets, date, onUpdate, onRemove }) {
   const catId = split.category_id ? Number(split.category_id) : null
-  const catBudgets = catId ? allBudgets.filter(b => b.category_id === catId) : []
+  const catBudgets = catId ? allBudgets.filter(b => b.category_id === catId && isBudgetActive(b, date)) : []
 
   return (
     <div className="space-y-1.5 pb-2 border-b border-slate-100 dark:border-slate-800 last:border-0 last:pb-0">
